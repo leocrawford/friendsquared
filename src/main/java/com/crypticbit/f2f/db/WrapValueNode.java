@@ -7,21 +7,31 @@ import org.neo4j.graphdb.Node;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.JsonToken;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializerProvider;
-import com.fasterxml.jackson.databind.node.TextNode;
 import com.fasterxml.jackson.databind.node.ValueNode;
 
-public class WrapValueNode extends ValueNode implements JsonNodeGraphAdapter{
+public class WrapValueNode extends ValueNode implements JsonNodeGraphAdapter {
 
-	private ValueNode delegate;
+	private JsonNode delegate;
 	private Node graphNode;
 
 	public WrapValueNode(Node graphNode) {
 		this.graphNode = graphNode;
-		this.delegate = new TextNode((String) graphNode.getProperty("value"));
+		try {
+			// FIXME factor out object mapper
+			this.delegate = new ObjectMapper().readTree((String) graphNode
+					.getProperty("value"));
+		} catch (JsonProcessingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 
-	
 	@Override
 	public JsonToken asToken() {
 		return delegate.asToken();
@@ -30,7 +40,7 @@ public class WrapValueNode extends ValueNode implements JsonNodeGraphAdapter{
 	@Override
 	public void serialize(JsonGenerator jgen, SerializerProvider provider)
 			throws IOException, JsonProcessingException {
-		delegate.serialize(jgen, provider);
+		((ValueNode) delegate).serialize(jgen, provider);
 
 	}
 
@@ -47,7 +57,7 @@ public class WrapValueNode extends ValueNode implements JsonNodeGraphAdapter{
 	@Override
 	public void updateNodes() {
 		// do nothing
-		
+
 	}
 
 	@Override
@@ -55,4 +65,9 @@ public class WrapValueNode extends ValueNode implements JsonNodeGraphAdapter{
 		return graphNode;
 	}
 
+	@Override
+	public String toString() {
+		return delegate.toString();
+	}
+	
 }

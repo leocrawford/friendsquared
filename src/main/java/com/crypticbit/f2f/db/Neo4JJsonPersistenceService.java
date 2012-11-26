@@ -32,7 +32,7 @@ public class Neo4JJsonPersistenceService implements JsonPersistenceService {
 	private File file;
 	private transient GraphDatabaseService graphDb;
 	private transient Node referenceNode;
-	private static JsonNodeFactory jnf = JsonNodeFactory.instance;
+	static JsonNodeFactory jnf = JsonNodeFactory.instance;
 
 	/** Use (or create if not present) the neo4j database at this location */
 	public Neo4JJsonPersistenceService(File file) {
@@ -146,7 +146,7 @@ public class Neo4JJsonPersistenceService implements JsonPersistenceService {
 			}
 		} else {
 			graphNode.setProperty("type", NodeTypes.VALUE.toString());
-			graphNode.setProperty("value", jsonNode.asText());
+			graphNode.setProperty("value", jsonNode.toString());
 		}
 
 	}
