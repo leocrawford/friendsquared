@@ -1,0 +1,3 @@
+[submodule "jsonpath"]
+	path = jsonpath
+	url = git://github.com/nlalevee/jackson-jsonpath.git
