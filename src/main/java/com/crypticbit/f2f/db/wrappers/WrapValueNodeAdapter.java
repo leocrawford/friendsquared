@@ -1,6 +1,7 @@
 package com.crypticbit.f2f.db.wrappers;
 
 import java.io.IOException;
+import java.util.List;
 
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
@@ -17,11 +18,12 @@ import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializerProvider;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.NullNode;
 import com.fasterxml.jackson.databind.node.ValueNode;
 import com.jayway.jsonpath.JsonPath;
 
-public class WrapValueNodeAdapter extends ValueNode implements MyGraphNode {
+public class WrapValueNodeAdapter extends ValueNode implements GraphNode {
 
     private JsonNode delegate;
     private Node graphNode;
@@ -106,8 +108,18 @@ public class WrapValueNodeAdapter extends ValueNode implements MyGraphNode {
     }
 
     @Override
-    public MyGraphNode get(JsonPath path) {
+    public GraphNode get(JsonPath path) {
 	throw new Error("Not possible to navigate from leaf object");
     }
+    
+    public String toJsonString() {
+	return delegate.toString();
+    }
+
+    @Override
+    public JsonNode toJsonNode() {
+	return delegate;
+    }
+
 
 }

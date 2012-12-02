@@ -34,16 +34,17 @@ public class NodeAdapterWrapperFactory {
 	    @Override
 	    public Object invoke(Object self, Method thisMethod,
 		    Method proceed, Object[] args) throws Throwable {
-		if (Modifier.isAbstract(thisMethod.getModifiers())) {
-		    OutwardFacingJsonNodeGraphAdapter t = ((JsonNodeGraphAdapter) self)
-			    .getGraphParent();
-		     return t.getClass().getMethod(thisMethod.getName(),thisMethod.getParameterTypes()).invoke(t, args);
-//		    System.out.println("executing "+thisMethod+" on "+t.getClass());
-//		    return thisMethod.invoke(t, args);
-		} else {
-		    ((JsonNodeGraphAdapter) self).updateNodes();
-		    return proceed.invoke(self, args);
-		}
+		return null;
+//		if (Modifier.isAbstract(thisMethod.getModifiers())) {
+//		    OutwardFacingJsonNodeGraphAdapter t = ((JsonNodeGraphAdapter) self)
+//			    .getGraphParent();
+//		     return t.getClass().getMethod(thisMethod.getName(),thisMethod.getParameterTypes()).invoke(t, args);
+////		    System.out.println("executing "+thisMethod+" on "+t.getClass());
+////		    return thisMethod.invoke(t, args);
+//		} else {
+//		    ((JsonNodeGraphAdapter) self).updateNodes();
+//		    return proceed.invoke(self, args);
+//		}
 	    }
 
 	};

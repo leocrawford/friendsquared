@@ -20,9 +20,9 @@ public class Neo4JJsonPersistenceServiceTest {
 	Neo4JJsonPersistenceService ps = new Neo4JJsonPersistenceService(Files
 		.createTempDirectory("neo4j_test").toFile());
 	ps.getRootJsonNode().put(mapper.readTree(jsonText));
-	System.out.println(ps.getRootJsonNode());
+	System.out.println(ps.getRootJsonNode().toJsonString());
 	ps.getRootJsonNode().get(JsonPath.compile("second")).put(mapper.readTree("\"blah blah\""));
-	System.out.println(ps.getRootJsonNode());
+	System.out.println(ps.getRootJsonNode().toJsonString());
 //	ps.put(JsonPath.compile("second[0]"),
 //		ps.get(JsonPath.compile("second[4]")));
 //	System.out.println(ps.getRootJsonNode());
@@ -39,8 +39,8 @@ public class Neo4JJsonPersistenceServiceTest {
 
 	ps.getRootJsonNode().put(mapper.readTree(jsonText));	// we have to convert our return value to get rid of spaces, etc. and
 	// ensure we do type comparison
-	System.out.println(ps.getRootJsonNode().toString());
-	assertEquals(mapper.readTree(ps.getRootJsonNode().toString()),
+	System.out.println(ps.getRootJsonNode().toJsonString());
+	assertEquals(mapper.readTree(ps.getRootJsonNode().toJsonString()),
 		mapper.readTree(jsonText));
     }
 

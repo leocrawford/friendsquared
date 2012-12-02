@@ -3,7 +3,7 @@ package com.crypticbit.f2f.db.strategies;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
 
-import com.crypticbit.f2f.db.RelTypes;
+import com.crypticbit.f2f.db.types.RelationshipTypes;
 import com.fasterxml.jackson.databind.JsonNode;
 
 public class TimestampVersionStrategy extends VersionStrategyImpl  {
@@ -21,7 +21,7 @@ public class TimestampVersionStrategy extends VersionStrategyImpl  {
     private static Node createNewVersion(Context context, Node graphNode) {
 	Node newNode;
 	newNode = context.getGraphDb().createNode();
-	graphNode.createRelationshipTo(newNode, RelTypes.INCOMING_VERSION);
+	graphNode.createRelationshipTo(newNode, RelationshipTypes.INCOMING_VERSION);
 	return newNode;
     }
 }

@@ -1,6 +1,7 @@
 package com.crypticbit.f2f.db.wrappers;
 
 import java.util.AbstractList;
+import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -11,13 +12,14 @@ import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.Transaction;
 
 import com.crypticbit.f2f.db.JsonPersistenceException;
-import com.crypticbit.f2f.db.NodeTypes;
-import com.crypticbit.f2f.db.RelTypes;
 import com.crypticbit.f2f.db.strategies.Context;
 import com.crypticbit.f2f.db.strategies.StrategyChainFactory;
 import com.crypticbit.f2f.db.strategies.UnversionedVersionStrategy;
 import com.crypticbit.f2f.db.strategies.VersionStrategy;
+import com.crypticbit.f2f.db.types.NodeTypes;
+import com.crypticbit.f2f.db.types.RelationshipTypes;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.jayway.jsonpath.JsonPath;
 
 /**
@@ -28,10 +30,11 @@ import com.jayway.jsonpath.JsonPath;
  * @author leo
  * 
  */
-public class ArrayNodeAdapter  extends AbstractList<MyGraphNode> implements MyGraphNode {
+public class ArrayNodeAdapter extends AbstractList<GraphNode> implements
+	GraphNode {
 
     private Node node;
-    private MyGraphNode children[];
+    private GraphNode children[];
 
     public ArrayNodeAdapter(Node node) {
 	this.node = node;
@@ -39,18 +42,19 @@ public class ArrayNodeAdapter  extends AbstractList<MyGraphNode> implements MyGr
 
     public void updateNodes() {
 	if (children == null) {
-	    Map<Integer, MyGraphNode> map = new TreeMap<Integer, MyGraphNode>();
+	    Map<Integer, GraphNode> map = new TreeMap<Integer, GraphNode>();
 	    for (Relationship r : node.getRelationships(
-		    RelTypes.ARRAY, Direction.OUTGOING)) {
+		    RelationshipTypes.ARRAY, Direction.OUTGOING)) {
 		map.put((Integer) r.getProperty("index"),
-			NodeTypes.wrapAsJsonNode(r.getEndNode()));
+			NodeTypes.wrapAsGraphNode(r.getEndNode()));
 	    }
-	    children = (MyGraphNode[]) map.values().toArray(new MyGraphNode[map.size()]);
+	    children = (GraphNode[]) map.values().toArray(
+		    new GraphNode[map.size()]);
 	}
     }
-    
+
     @Override
-    public MyGraphNode get(int index) {
+    public GraphNode get(int index) {
 	updateNodes();
 	return children[index];
     }
@@ -60,9 +64,9 @@ public class ArrayNodeAdapter  extends AbstractList<MyGraphNode> implements MyGr
 	updateNodes();
 	return children.length;
     }
-    
+
     @Override
-    public MyGraphNode get(JsonPath path) {
+    public GraphNode get(JsonPath path) {
 	return path.read(this);
     }
 
@@ -97,6 +101,32 @@ public class ArrayNodeAdapter  extends AbstractList<MyGraphNode> implements MyGr
 
     private GraphDatabaseService getDatabaseService() {
 	return node.getGraphDatabase();
+    }
+
+    @Override
+    public String toJsonString() {
+	return toJsonNode().toString();
+    }
+
+    @Override
+    public JsonNode toJsonNode() {
+	return new ArrayNode(null, wrapChildrenAsJsonNode()) {
+	};
+    }
+
+    public List<JsonNode> wrapChildrenAsJsonNode() {
+	return new AbstractList<JsonNode>() {
+
+	    @Override
+	    public JsonNode get(int index) {
+		return ArrayNodeAdapter.this.get(index).toJsonNode();
+	    }
+
+	    @Override
+	    public int size() {
+		return ArrayNodeAdapter.this.size();
+	    }
+	};
     }
 
 }

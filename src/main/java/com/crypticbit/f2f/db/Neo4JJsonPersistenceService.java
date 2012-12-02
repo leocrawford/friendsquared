@@ -6,7 +6,8 @@ import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.factory.GraphDatabaseFactory;
 
-import com.crypticbit.f2f.db.wrappers.MyGraphNode;
+import com.crypticbit.f2f.db.types.NodeTypes;
+import com.crypticbit.f2f.db.wrappers.GraphNode;
 import com.jayway.jsonpath.JsonPath;
 
 /**
@@ -68,8 +69,8 @@ public class Neo4JJsonPersistenceService implements JsonPersistenceService {
      * Get the root of the tree - which could be pretty big, but lucily
      * everything is lazily loaded
      */
-    public MyGraphNode getRootJsonNode() {
-	return NodeTypes.wrapAsJsonNode(getRootGraphNode());
+    public GraphNode getRootJsonNode() {
+	return NodeTypes.wrapAsGraphNode(getRootGraphNode());
     }
 
 

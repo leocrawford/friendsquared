@@ -5,8 +5,8 @@ import java.util.Iterator;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
 
-import com.crypticbit.f2f.db.NodeTypes;
-import com.crypticbit.f2f.db.RelTypes;
+import com.crypticbit.f2f.db.types.NodeTypes;
+import com.crypticbit.f2f.db.types.RelationshipTypes;
 import com.fasterxml.jackson.databind.JsonNode;
 
 public class UnversionedVersionStrategy extends VersionStrategyImpl {
@@ -27,7 +27,7 @@ public class UnversionedVersionStrategy extends VersionStrategyImpl {
   		graphNode.setProperty("type", NodeTypes.ARRAY.toString());
   		for (int loop = 0; loop < jsonNode.size(); loop++) {
   		    Node newNode = context.getGraphDb().createNode();
-  		    graphNode.createRelationshipTo(newNode, RelTypes.ARRAY)
+  		    graphNode.createRelationshipTo(newNode, RelationshipTypes.ARRAY)
   			    .setProperty("index", loop);
   		    copyJsonToGraph(context, newNode, jsonNode.get(loop));
   		}
@@ -39,7 +39,7 @@ public class UnversionedVersionStrategy extends VersionStrategyImpl {
   		    String f = fieldNamesIterator.next();
   		    JsonNode e = jsonNode.get(f);
   		    Node newNode = context.getGraphDb().createNode();
-  		    graphNode.createRelationshipTo(newNode, RelTypes.MAP)
+  		    graphNode.createRelationshipTo(newNode, RelationshipTypes.MAP)
   			    .setProperty("name", f);
   		    ;
   		    copyJsonToGraph(context, newNode, e);
