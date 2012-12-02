@@ -2,10 +2,10 @@ package com.crypticbit.f2f.db.neo4j.types;
 
 import org.neo4j.graphdb.Node;
 
-import com.crypticbit.f2f.db.neo4j.wrappers.ArrayGraphNode;
-import com.crypticbit.f2f.db.neo4j.wrappers.GraphNode;
-import com.crypticbit.f2f.db.neo4j.wrappers.MapGraphNode;
-import com.crypticbit.f2f.db.neo4j.wrappers.ValueGraphNode;
+import com.crypticbit.f2f.db.neo4j.nodes.ArrayGraphNode;
+import com.crypticbit.f2f.db.neo4j.nodes.GraphNode;
+import com.crypticbit.f2f.db.neo4j.nodes.MapGraphNode;
+import com.crypticbit.f2f.db.neo4j.nodes.ValueGraphNode;
 
 public enum NodeTypes {
     ARRAY() {

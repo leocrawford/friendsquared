@@ -1,4 +1,4 @@
-package com.crypticbit.f2f.db;
+package com.crypticbit.f2f.db.neo4j;
 
 import java.io.File;
 
@@ -6,8 +6,12 @@ import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.factory.GraphDatabaseFactory;
 
+import com.crypticbit.f2f.db.IllegalJsonException;
+import com.crypticbit.f2f.db.JsonPersistenceException;
+import com.crypticbit.f2f.db.JsonPersistenceService;
+import com.crypticbit.f2f.db.neo4j.nodes.GraphNode;
 import com.crypticbit.f2f.db.neo4j.types.NodeTypes;
-import com.crypticbit.f2f.db.neo4j.wrappers.GraphNode;
+import com.fasterxml.jackson.databind.JsonNode;
 
 /**
  * Provides persistence for Json objects (depicted using Jackson JsonNode) with
@@ -66,12 +70,12 @@ public class Neo4JJsonPersistenceService implements JsonPersistenceService {
      * Get the root of the tree - which could be pretty big, but lucily
      * everything is lazily loaded
      */
-    public GraphNode getRootJsonNode() {
-	return NodeTypes.wrapAsGraphNode(getRootGraphNode());
+    private GraphNode getRootGraphNode() {
+	return NodeTypes.wrapAsGraphNode(getDatabaseNode());
     }
 
     /** Get the root of the graph */
-    private Node getRootGraphNode() {
+    public Node getDatabaseNode() {
 	return referenceNode;
     }
 
@@ -82,5 +86,28 @@ public class Neo4JJsonPersistenceService implements JsonPersistenceService {
 	referenceNode = graphDb.getReferenceNode();
 
     }
+
+    @Override
+    public GraphNode navigate(String jsonPath) {
+return getRootGraphNode().navigate(jsonPath);
+    }
+
+    @Override
+    public void put(String json) throws IllegalJsonException, JsonPersistenceException {
+	getRootGraphNode().put(json);
+	
+    }
+
+    @Override
+    public JsonNode toJsonNode() {
+	return getRootGraphNode().toJsonNode();
+    }
+
+    @Override
+    public String toJsonString() {
+	return getRootGraphNode().toJsonString();
+    }
+
+ 
 
 }

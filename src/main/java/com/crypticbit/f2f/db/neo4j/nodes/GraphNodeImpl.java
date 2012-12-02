@@ -1,4 +1,4 @@
-package com.crypticbit.f2f.db.neo4j.wrappers;
+package com.crypticbit.f2f.db.neo4j.nodes;
 
 import java.io.IOException;
 

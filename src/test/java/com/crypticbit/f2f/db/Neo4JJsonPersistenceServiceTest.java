@@ -7,6 +7,7 @@ import java.nio.file.Files;
 
 import org.junit.Test;
 
+import com.crypticbit.f2f.db.neo4j.Neo4JJsonPersistenceService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jayway.jsonpath.JsonPath;
 
@@ -19,10 +20,10 @@ public class Neo4JJsonPersistenceServiceTest {
     public void testFindFromRoot() throws IOException, JsonPersistenceException, IllegalJsonException {
 	Neo4JJsonPersistenceService ps = new Neo4JJsonPersistenceService(Files.createTempDirectory("neo4j_test")
 		.toFile());
-	ps.getRootJsonNode().put(jsonText);
-	System.out.println(ps.getRootJsonNode().toJsonString());
-	ps.getRootJsonNode().navigate("second").put("\"blah blah\"");
-	System.out.println(ps.getRootJsonNode().toJsonString());
+	ps.put(jsonText);
+	System.out.println(ps.toJsonString());
+	ps.navigate("second").put("\"blah blah\"");
+	System.out.println(ps.toJsonString());
 	// ps.put(JsonPath.compile("second[0]"),
 	// ps.get(JsonPath.compile("second[4]")));
 	// System.out.println(ps.getRootJsonNode());
@@ -36,14 +37,14 @@ public class Neo4JJsonPersistenceServiceTest {
 	Neo4JJsonPersistenceService ps = new Neo4JJsonPersistenceService(Files.createTempDirectory("neo4j_test")
 		.toFile());
 
-	ps.getRootJsonNode().put(jsonText); // we have to
+	ps.put(jsonText); // we have to
 							     // convert our
 							     // return value to
 							     // get rid of
 							     // spaces, etc. and
 	// ensure we do type comparison
-	System.out.println(ps.getRootJsonNode().toJsonString());
-	assertEquals(mapper.readTree(ps.getRootJsonNode().toJsonString()), mapper.readTree(jsonText));
+	System.out.println(ps.toJsonString());
+	assertEquals(mapper.readTree(ps.toJsonString()), mapper.readTree(jsonText));
     }
 
 }
