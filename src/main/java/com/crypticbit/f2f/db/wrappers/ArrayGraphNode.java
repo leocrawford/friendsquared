@@ -103,8 +103,8 @@ public class ArrayGraphNode extends AbstractList<GraphNode> implements GraphNode
     // delegate methods
 
     @Override
-    public GraphNode get(JsonPath path) {
-	return virtualSuperclass.get(path);
+    public GraphNode navigate(String path) {
+	return virtualSuperclass.navigate(path);
     }
 
     @Override

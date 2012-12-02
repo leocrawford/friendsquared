@@ -7,7 +7,7 @@ import com.jayway.jsonpath.JsonPath;
 
 public interface GraphNode {
 
-    public GraphNode get(JsonPath compile);
+    public GraphNode navigate(String jsonPath);
 
     public void put(JsonNode readTree);
 

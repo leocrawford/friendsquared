@@ -56,7 +56,7 @@ public class ValueGraphNode extends ValueNode implements GraphNode {
     }
 
     @Override
-    public GraphNode get(JsonPath path) {
+    public GraphNode navigate(String path) {
 	throw new Error("Not possible to navigate from leaf object");
     }
 

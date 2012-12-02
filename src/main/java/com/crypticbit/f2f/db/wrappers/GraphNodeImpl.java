@@ -1,6 +1,7 @@
 package com.crypticbit.f2f.db.wrappers;
 
 import org.neo4j.graphdb.GraphDatabaseService;
+import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
 
 import com.crypticbit.f2f.db.JsonPersistenceException;
@@ -11,7 +12,7 @@ import com.crypticbit.f2f.db.strategies.VersionStrategy;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.jayway.jsonpath.JsonPath;
 
-public class GraphNodeImpl {
+public class GraphNodeImpl implements GraphNode{
 
     private GraphNode graphNode;
 
@@ -19,8 +20,8 @@ public class GraphNodeImpl {
 	this.graphNode = graphNode;
     }
 
-    public GraphNode get(JsonPath path) {
-	return path.read(graphNode);
+    public GraphNode navigate(String path) {
+	return JsonPath.compile(path).read(graphNode);
     }
 
     public void put(JsonNode values) {
@@ -47,6 +48,16 @@ public class GraphNodeImpl {
 
     public String toJsonString() {
 	return graphNode.toJsonNode().toString();
+    }
+
+    @Override
+    public JsonNode toJsonNode() {
+	throw new UnsupportedOperationException("toJsonNode is to be provided locally");
+    }
+
+    @Override
+    public Node getDatabaseNode() {
+	throw new UnsupportedOperationException("getDatabaseNode is to be provided locally");
     }
 
 }

@@ -21,7 +21,7 @@ public class Neo4JJsonPersistenceServiceTest {
 		.toFile());
 	ps.getRootJsonNode().put(mapper.readTree(jsonText));
 	System.out.println(ps.getRootJsonNode().toJsonString());
-	ps.getRootJsonNode().get(JsonPath.compile("second")).put(mapper.readTree("\"blah blah\""));
+	ps.getRootJsonNode().navigate("second").put(mapper.readTree("\"blah blah\""));
 	System.out.println(ps.getRootJsonNode().toJsonString());
 	// ps.put(JsonPath.compile("second[0]"),
 	// ps.get(JsonPath.compile("second[4]")));
