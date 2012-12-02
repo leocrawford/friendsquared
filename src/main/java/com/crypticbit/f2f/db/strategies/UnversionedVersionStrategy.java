@@ -5,7 +5,6 @@ import java.util.Iterator;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
 
-import com.crypticbit.f2f.db.Context;
 import com.crypticbit.f2f.db.NodeTypes;
 import com.crypticbit.f2f.db.RelTypes;
 import com.fasterxml.jackson.databind.JsonNode;

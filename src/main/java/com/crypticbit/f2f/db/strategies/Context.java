@@ -1,4 +1,4 @@
-package com.crypticbit.f2f.db;
+package com.crypticbit.f2f.db.strategies;
 
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Transaction;

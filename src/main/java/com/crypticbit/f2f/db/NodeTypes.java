@@ -4,37 +4,36 @@ import org.neo4j.graphdb.Node;
 
 import com.crypticbit.f2f.db.wrappers.ArrayNodeAdapter;
 import com.crypticbit.f2f.db.wrappers.MapNodeAdapter;
-import com.crypticbit.f2f.db.wrappers.NodeAdapterWrapperFactory;
+import com.crypticbit.f2f.db.wrappers.MyGraphNode;
 import com.crypticbit.f2f.db.wrappers.WrapValueNodeAdapter;
-import com.fasterxml.jackson.databind.JsonNode;
 
 public enum NodeTypes {
     ARRAY() {
 	@Override
-	JsonNode _wrapAsJsonNode(Node graphNode) {
-	    return NodeAdapterWrapperFactory.createDynamicWrapperForNode(
-		    graphNode, ArrayNodeAdapter.class);
+	MyGraphNode _wrapAsJsonNode(Node graphNode) {
+	    return new ArrayNodeAdapter(graphNode);
 	}
 
     },
     MAP() {
 	@Override
-	JsonNode _wrapAsJsonNode(Node graphNode) {
-	    return NodeAdapterWrapperFactory.createDynamicWrapperForNode(
-		    graphNode, MapNodeAdapter.class);
+	MyGraphNode _wrapAsJsonNode(Node graphNode) {
+	    return new MapNodeAdapter(graphNode);
 	}
     },
     VALUE() {
 	@Override
-	JsonNode _wrapAsJsonNode(Node graphNode) {
-	    return NodeAdapterWrapperFactory.createDynamicWrapperForNode(
-		    graphNode, WrapValueNodeAdapter.class);
+	MyGraphNode _wrapAsJsonNode(Node graphNode) {
+	    return new WrapValueNodeAdapter(graphNode);
 	}
     };
-    public static JsonNode wrapAsJsonNode(Node graphNode) {
-	return valueOf((String) graphNode.getProperty("type"))._wrapAsJsonNode(
-		graphNode);
+    public static MyGraphNode wrapAsJsonNode(Node graphNode) {
+	if (graphNode.hasProperty("type"))
+	    return valueOf((String) graphNode.getProperty("type"))
+		    ._wrapAsJsonNode(graphNode);
+	else
+	    return VALUE._wrapAsJsonNode(graphNode);
     }
 
-    abstract JsonNode _wrapAsJsonNode(Node graphNode);
+    abstract MyGraphNode _wrapAsJsonNode(Node graphNode);
 }

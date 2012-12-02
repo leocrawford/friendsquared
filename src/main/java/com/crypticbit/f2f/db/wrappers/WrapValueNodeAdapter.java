@@ -2,29 +2,39 @@ package com.crypticbit.f2f.db.wrappers;
 
 import java.io.IOException;
 
+import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Transaction;
 
+import com.crypticbit.f2f.db.JsonPersistenceException;
+import com.crypticbit.f2f.db.strategies.Context;
+import com.crypticbit.f2f.db.strategies.StrategyChainFactory;
+import com.crypticbit.f2f.db.strategies.UnversionedVersionStrategy;
+import com.crypticbit.f2f.db.strategies.VersionStrategy;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializerProvider;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.fasterxml.jackson.databind.node.NullNode;
 import com.fasterxml.jackson.databind.node.ValueNode;
+import com.jayway.jsonpath.JsonPath;
 
-public abstract class WrapValueNodeAdapter extends ValueNode implements JsonNodeGraphAdapter {
+public class WrapValueNodeAdapter extends ValueNode implements MyGraphNode {
 
     private JsonNode delegate;
-    protected OutwardFacingJsonNodeGraphAdapter graphParent;
-	
+    private Node graphNode;
 
-    public WrapValueNodeAdapter(JsonNodeFactory nc, Node graphNode) {
-	this.graphParent = new JsonNodeGraphAdapterImpl(graphNode);
+    public WrapValueNodeAdapter(Node graphNode) {
+	this.graphNode = graphNode;
 	try {
 	    // FIXME factor out object mapper
-	    this.delegate = new ObjectMapper().readTree((String) graphNode
-		    .getProperty("value"));
+	    if (graphNode.hasProperty("value"))
+		this.delegate = new ObjectMapper().readTree((String) graphNode
+			.getProperty("value"));
+	    else
+		this.delegate = new ObjectMapper().readTree("null");
 	} catch (JsonProcessingException e) {
 	    // TODO Auto-generated catch block
 	    e.printStackTrace();
@@ -32,6 +42,7 @@ public abstract class WrapValueNodeAdapter extends ValueNode implements JsonNode
 	    // TODO Auto-generated catch block
 	    e.printStackTrace();
 	}
+
     }
 
     @Override
@@ -61,13 +72,42 @@ public abstract class WrapValueNodeAdapter extends ValueNode implements JsonNode
 	return delegate.toString();
     }
 
-    @Override
-    public void updateNodes() {
-	// do nothing
+    /**
+     * Put the values at the location depicted by the path. Path must be to an
+     * existing and valid node (which will be overwritten). To add to an
+     * existing node use add.
+     * 
+     * @see add
+     */
+    public void put(JsonNode values, VersionStrategy strategy, Context context)
+	    throws JsonPersistenceException {
+	strategy.replaceNode(context, graphNode, values);
+
     }
-    
-    public OutwardFacingJsonNodeGraphAdapter getGraphParent() {
-	return graphParent;
+
+    public void put(JsonNode values) {
+	Transaction tx = getDatabaseService().beginTx();
+	try {
+	    put(values,
+		    new StrategyChainFactory()
+			    .createVersionStrategies(UnversionedVersionStrategy.class),
+		    new Context(tx, getDatabaseService()));
+	    tx.success();
+	} catch (JsonPersistenceException e) {
+	    tx.failure();
+	    e.printStackTrace();
+	} finally {
+	    tx.finish();
+	}
+    }
+
+    private GraphDatabaseService getDatabaseService() {
+	return graphNode.getGraphDatabase();
+    }
+
+    @Override
+    public MyGraphNode get(JsonPath path) {
+	throw new Error("Not possible to navigate from leaf object");
     }
 
 }
