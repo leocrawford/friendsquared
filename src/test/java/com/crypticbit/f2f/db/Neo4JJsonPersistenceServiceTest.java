@@ -17,31 +17,33 @@ public class Neo4JJsonPersistenceServiceTest {
 
     @Test
     public void testFindFromRoot() throws IOException, JsonPersistenceException {
-	Neo4JJsonPersistenceService ps = new Neo4JJsonPersistenceService(Files
-		.createTempDirectory("neo4j_test").toFile());
+	Neo4JJsonPersistenceService ps = new Neo4JJsonPersistenceService(Files.createTempDirectory("neo4j_test")
+		.toFile());
 	ps.getRootJsonNode().put(mapper.readTree(jsonText));
 	System.out.println(ps.getRootJsonNode().toJsonString());
 	ps.getRootJsonNode().get(JsonPath.compile("second")).put(mapper.readTree("\"blah blah\""));
 	System.out.println(ps.getRootJsonNode().toJsonString());
-//	ps.put(JsonPath.compile("second[0]"),
-//		ps.get(JsonPath.compile("second[4]")));
-//	System.out.println(ps.getRootJsonNode());
-//	System.out.println(ps.get(JsonPath.compile("second[0]")));
-//	System.out.println(ps.get(JsonPath.compile("$.second[0]")));
-//	System.out.println(ps.get(JsonPath.compile("second[4]")));
+	// ps.put(JsonPath.compile("second[0]"),
+	// ps.get(JsonPath.compile("second[4]")));
+	// System.out.println(ps.getRootJsonNode());
+	// System.out.println(ps.get(JsonPath.compile("second[0]")));
+	// System.out.println(ps.get(JsonPath.compile("$.second[0]")));
+	// System.out.println(ps.get(JsonPath.compile("second[4]")));
     }
 
     @Test
-    public void testGetRootJsonNode() throws IOException,
-	    JsonPersistenceException {
-	Neo4JJsonPersistenceService ps = new Neo4JJsonPersistenceService(Files
-		.createTempDirectory("neo4j_test").toFile());
+    public void testGetRootJsonNode() throws IOException, JsonPersistenceException {
+	Neo4JJsonPersistenceService ps = new Neo4JJsonPersistenceService(Files.createTempDirectory("neo4j_test")
+		.toFile());
 
-	ps.getRootJsonNode().put(mapper.readTree(jsonText));	// we have to convert our return value to get rid of spaces, etc. and
+	ps.getRootJsonNode().put(mapper.readTree(jsonText)); // we have to
+							     // convert our
+							     // return value to
+							     // get rid of
+							     // spaces, etc. and
 	// ensure we do type comparison
 	System.out.println(ps.getRootJsonNode().toJsonString());
-	assertEquals(mapper.readTree(ps.getRootJsonNode().toJsonString()),
-		mapper.readTree(jsonText));
+	assertEquals(mapper.readTree(ps.getRootJsonNode().toJsonString()), mapper.readTree(jsonText));
     }
 
 }

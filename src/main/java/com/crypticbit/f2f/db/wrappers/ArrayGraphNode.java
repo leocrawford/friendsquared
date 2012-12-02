@@ -23,34 +23,22 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.jayway.jsonpath.JsonPath;
 
 /**
- * This class extends ArrayNode, but requires a call to updateNodes before calls
- * to any method that uses _children, so in practice we will typically wrap it
- * in a dynamic class that knows to call the method before all other calls.
+ * This class hold GraphNodes that represent array's. It provides conversions to
+ * JsonNode.
  * 
  * @author leo
  * 
  */
-public class ArrayGraphNode extends AbstractList<GraphNode> implements
-	GraphNode {
+public class ArrayGraphNode extends AbstractList<GraphNode> implements GraphNode {
 
     private Node node;
     private GraphNode children[];
+    private GraphNodeImpl virtualSuperclass;
 
+    /** Create a node that represents this graph node */
     public ArrayGraphNode(Node node) {
 	this.node = node;
-    }
-
-    public void updateNodes() {
-	if (children == null) {
-	    Map<Integer, GraphNode> map = new TreeMap<Integer, GraphNode>();
-	    for (Relationship r : node.getRelationships(
-		    RelationshipTypes.ARRAY, Direction.OUTGOING)) {
-		map.put((Integer) r.getProperty("index"),
-			NodeTypes.wrapAsGraphNode(r.getEndNode()));
-	    }
-	    children = (GraphNode[]) map.values().toArray(
-		    new GraphNode[map.size()]);
-	}
+	this.virtualSuperclass = new GraphNodeImpl(this);
     }
 
     @Override
@@ -66,55 +54,33 @@ public class ArrayGraphNode extends AbstractList<GraphNode> implements
     }
 
     @Override
-    public GraphNode get(JsonPath path) {
-	return path.read(this);
-    }
-
-    /**
-     * Put the values at the location depicted by the path. Path must be to an
-     * existing and valid node (which will be overwritten). To add to an
-     * existing node use add.
-     * 
-     * @see add
-     */
-    public void put(JsonNode values, VersionStrategy strategy, Context context)
-	    throws JsonPersistenceException {
-	strategy.replaceNode(context, node, values);
-
-    }
-
-    public void put(JsonNode values) {
-	Transaction tx = getDatabaseService().beginTx();
-	try {
-	    put(values,
-		    new StrategyChainFactory()
-			    .createVersionStrategies(UnversionedVersionStrategy.class),
-		    new Context(tx, getDatabaseService()));
-	    tx.success();
-	} catch (JsonPersistenceException e) {
-	    tx.failure();
-	    e.printStackTrace();
-	} finally {
-	    tx.finish();
-	}
-    }
-
-    private GraphDatabaseService getDatabaseService() {
-	return node.getGraphDatabase();
-    }
-
-    @Override
-    public String toJsonString() {
-	return toJsonNode().toString();
-    }
-
-    @Override
     public JsonNode toJsonNode() {
 	return new ArrayNode(null, wrapChildrenAsJsonNode()) {
 	};
     }
 
-    public List<JsonNode> wrapChildrenAsJsonNode() {
+    /**
+     * Read the node's relationships to build the children list. This is
+     * typically done lazily
+     */
+    public void updateNodes() {
+	if (children == null) {
+	    Map<Integer, GraphNode> map = new TreeMap<Integer, GraphNode>();
+	    for (Relationship r : node.getRelationships(RelationshipTypes.ARRAY, Direction.OUTGOING)) {
+		map.put((Integer) r.getProperty("index"), NodeTypes.wrapAsGraphNode(r.getEndNode()));
+	    }
+	    children = map.values().toArray(new GraphNode[map.size()]);
+	}
+    }
+
+    /**
+     * The children are exposed as a collection of GraphNode's. In order to
+     * build a JsonNode, they need to be converted to a collection of
+     * JsonNode's.
+     * 
+     * @return the children collection, exposed as a collection of JsonNode's
+     */
+    private List<JsonNode> wrapChildrenAsJsonNode() {
 	return new AbstractList<JsonNode>() {
 
 	    @Override
@@ -127,6 +93,28 @@ public class ArrayGraphNode extends AbstractList<GraphNode> implements
 		return ArrayGraphNode.this.size();
 	    }
 	};
+    }
+
+    @Override
+    public Node getDatabaseNode() {
+	return node;
+    }
+
+    // delegate methods
+
+    @Override
+    public GraphNode get(JsonPath path) {
+	return virtualSuperclass.get(path);
+    }
+
+    @Override
+    public String toJsonString() {
+	return virtualSuperclass.toJsonString();
+    }
+
+    @Override
+    public void put(JsonNode values) {
+	virtualSuperclass.put(values);
     }
 
 }

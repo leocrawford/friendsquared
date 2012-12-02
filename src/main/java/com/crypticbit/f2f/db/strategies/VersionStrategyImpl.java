@@ -12,5 +12,4 @@ public abstract class VersionStrategyImpl implements VersionStrategy {
 	return parent;
     }
 
-
 }

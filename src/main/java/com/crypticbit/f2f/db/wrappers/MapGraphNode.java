@@ -25,93 +25,29 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.jayway.jsonpath.JsonPath;
 
 /**
- * This class extends ObjectNode, but requires a call to updateNodes before
- * calls to any method that uses _children, so in practice we will typically
- * wrap it in a dynamic class that knows to call the method before all other
- * calls.
- * 
- * @author leo
+ * Wraps a database node as a node that holds Map's
  * 
  */
-public class MapGraphNode extends AbstractMap<String, GraphNode> implements
-	GraphNode {
+public class MapGraphNode extends AbstractMap<String, GraphNode> implements GraphNode {
 
     private Node node;
-    private Set<Map.Entry<String, GraphNode>> entries;
+    private Set<Map.Entry<String, GraphNode>> children;
+    private GraphNodeImpl virtualSuperclass;
 
     public MapGraphNode(Node node) {
 	this.node = node;
+	this.virtualSuperclass = new GraphNodeImpl(this);
     }
 
-    public void updateNodes() {
-	if (entries == null) {
-	    entries = new HashSet<Map.Entry<String, GraphNode>>();
-
-	    for (Relationship r : node.getRelationships(RelationshipTypes.MAP,
-		    Direction.OUTGOING)) {
-
-		Node endNode = r.getEndNode();
-		Node chosenNode = endNode;
-		if (endNode.hasRelationship(Direction.OUTGOING,
-			RelationshipTypes.INCOMING_VERSION))
-		    chosenNode = endNode
-			    .getRelationships(Direction.OUTGOING,
-				    RelationshipTypes.INCOMING_VERSION)
-			    .iterator().next().getEndNode();
-		entries.add(new AbstractMap.SimpleImmutableEntry<String, GraphNode>(
-			(String) r.getProperty("name"), NodeTypes
-				.wrapAsGraphNode(chosenNode)));
-	    }
-	}
+    @Override
+    public Node getDatabaseNode() {
+	return node;
     }
 
     @Override
     public Set<java.util.Map.Entry<String, GraphNode>> entrySet() {
 	updateNodes();
-	return entries;
-    }
-
-    /**
-     * Put the values at the location depicted by the path. Path must be to an
-     * existing and valid node (which will be overwritten). To add to an
-     * existing node use add.
-     * 
-     * @see add
-     */
-    public void put(JsonNode values, VersionStrategy strategy, Context context)
-	    throws JsonPersistenceException {
-	strategy.replaceNode(context, node, values);
-
-    }
-
-    public void put(JsonNode values) {
-	Transaction tx = getDatabaseService().beginTx();
-	try {
-	    put(values,
-		    new StrategyChainFactory()
-			    .createVersionStrategies(UnversionedVersionStrategy.class),
-		    new Context(tx, getDatabaseService()));
-	    tx.success();
-	} catch (JsonPersistenceException e) {
-	    tx.failure();
-	    e.printStackTrace();
-	} finally {
-	    tx.finish();
-	}
-    }
-
-    private GraphDatabaseService getDatabaseService() {
-	return node.getGraphDatabase();
-    }
-
-    @Override
-    public GraphNode get(JsonPath path) {
-	return path.read(this);
-    }
-
-    @Override
-    public String toJsonString() {
-	return toJsonNode().toString();
+	return children;
     }
 
     @Override
@@ -120,6 +56,29 @@ public class MapGraphNode extends AbstractMap<String, GraphNode> implements
 	};
     }
 
+    /**
+     * Loads all the relationships, and packages them up as a Map which backs
+     * this class. Typically called lazily
+     */
+    public void updateNodes() {
+	if (children == null) {
+	    children = new HashSet<Map.Entry<String, GraphNode>>();
+
+	    for (Relationship r : node.getRelationships(RelationshipTypes.MAP, Direction.OUTGOING)) {
+
+		Node endNode = r.getEndNode();
+		Node chosenNode = endNode;
+		if (endNode.hasRelationship(Direction.OUTGOING, RelationshipTypes.INCOMING_VERSION)) {
+		    chosenNode = endNode.getRelationships(Direction.OUTGOING, RelationshipTypes.INCOMING_VERSION)
+			    .iterator().next().getEndNode();
+		}
+		children.add(new AbstractMap.SimpleImmutableEntry<String, GraphNode>((String) r.getProperty("name"),
+			NodeTypes.wrapAsGraphNode(chosenNode)));
+	    }
+	}
+    }
+
+    /** Converts the children to JsonNode's */
     public Map<String, JsonNode> wrapChildrenAsJsonNode() {
 	return new AbstractMap<String, JsonNode>() {
 
@@ -139,11 +98,9 @@ public class MapGraphNode extends AbstractMap<String, GraphNode> implements
 
 			    @Override
 			    public Map.Entry<String, JsonNode> next() {
-				java.util.Map.Entry<String, GraphNode> temp = i
-					.next();
-				return new AbstractMap.SimpleImmutableEntry<String, JsonNode>(
-					temp.getKey(), temp.getValue()
-						.toJsonNode());
+				java.util.Map.Entry<String, GraphNode> temp = i.next();
+				return new AbstractMap.SimpleImmutableEntry<String, JsonNode>(temp.getKey(), temp
+					.getValue().toJsonNode());
 			    }
 
 			    @Override
@@ -162,6 +119,23 @@ public class MapGraphNode extends AbstractMap<String, GraphNode> implements
 	    }
 
 	};
+    }
+
+    // delegate methods
+
+    @Override
+    public GraphNode get(JsonPath path) {
+	return virtualSuperclass.get(path);
+    }
+
+    @Override
+    public String toJsonString() {
+	return virtualSuperclass.toJsonString();
+    }
+
+    @Override
+    public void put(JsonNode values) {
+	virtualSuperclass.put(values);
     }
 
 }

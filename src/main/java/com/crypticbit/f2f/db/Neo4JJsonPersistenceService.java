@@ -8,7 +8,6 @@ import org.neo4j.graphdb.factory.GraphDatabaseFactory;
 
 import com.crypticbit.f2f.db.types.NodeTypes;
 import com.crypticbit.f2f.db.wrappers.GraphNode;
-import com.jayway.jsonpath.JsonPath;
 
 /**
  * Provides persistence for Json objects (depicted using Jackson JsonNode) with
@@ -63,8 +62,6 @@ public class Neo4JJsonPersistenceService implements JsonPersistenceService {
 	}
     }
 
-
-
     /**
      * Get the root of the tree - which could be pretty big, but lucily
      * everything is lazily loaded
@@ -73,7 +70,6 @@ public class Neo4JJsonPersistenceService implements JsonPersistenceService {
 	return NodeTypes.wrapAsGraphNode(getRootGraphNode());
     }
 
-
     /** Get the root of the graph */
     private Node getRootGraphNode() {
 	return referenceNode;
@@ -81,13 +77,10 @@ public class Neo4JJsonPersistenceService implements JsonPersistenceService {
 
     /** Do everything that's needed to actually create the database */
     private void setup() {
-	graphDb = new GraphDatabaseFactory().newEmbeddedDatabase(file
-		.getAbsolutePath());
+	graphDb = new GraphDatabaseFactory().newEmbeddedDatabase(file.getAbsolutePath());
 	registerShutdownHook(graphDb);
 	referenceNode = graphDb.getReferenceNode();
 
     }
-
-  
 
 }

@@ -3,8 +3,8 @@ package com.crypticbit.f2f.db.types;
 import org.neo4j.graphdb.Node;
 
 import com.crypticbit.f2f.db.wrappers.ArrayGraphNode;
-import com.crypticbit.f2f.db.wrappers.MapGraphNode;
 import com.crypticbit.f2f.db.wrappers.GraphNode;
+import com.crypticbit.f2f.db.wrappers.MapGraphNode;
 import com.crypticbit.f2f.db.wrappers.ValueGraphNode;
 
 public enum NodeTypes {
@@ -29,10 +29,10 @@ public enum NodeTypes {
     };
     public static GraphNode wrapAsGraphNode(Node graphNode) {
 	if (graphNode.hasProperty("type"))
-	    return valueOf((String) graphNode.getProperty("type"))
-		    ._wrapAsGraphNode(graphNode);
+	    return valueOf((String) graphNode.getProperty("type"))._wrapAsGraphNode(graphNode);
 	else
-	    // Let's do our best to make it a value node - especially for the default root element
+	    // Let's do our best to make it a value node - especially for the
+	    // default root element
 	    return VALUE._wrapAsGraphNode(graphNode);
     }
 
