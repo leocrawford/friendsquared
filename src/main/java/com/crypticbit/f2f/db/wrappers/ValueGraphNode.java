@@ -23,12 +23,12 @@ import com.fasterxml.jackson.databind.node.NullNode;
 import com.fasterxml.jackson.databind.node.ValueNode;
 import com.jayway.jsonpath.JsonPath;
 
-public class WrapValueNodeAdapter extends ValueNode implements GraphNode {
+public class ValueGraphNode extends ValueNode implements GraphNode {
 
     private JsonNode delegate;
     private Node graphNode;
 
-    public WrapValueNodeAdapter(Node graphNode) {
+    public ValueGraphNode(Node graphNode) {
 	this.graphNode = graphNode;
 	try {
 	    // FIXME factor out object mapper

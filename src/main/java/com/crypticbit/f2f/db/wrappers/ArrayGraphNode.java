@@ -30,13 +30,13 @@ import com.jayway.jsonpath.JsonPath;
  * @author leo
  * 
  */
-public class ArrayNodeAdapter extends AbstractList<GraphNode> implements
+public class ArrayGraphNode extends AbstractList<GraphNode> implements
 	GraphNode {
 
     private Node node;
     private GraphNode children[];
 
-    public ArrayNodeAdapter(Node node) {
+    public ArrayGraphNode(Node node) {
 	this.node = node;
     }
 
@@ -119,12 +119,12 @@ public class ArrayNodeAdapter extends AbstractList<GraphNode> implements
 
 	    @Override
 	    public JsonNode get(int index) {
-		return ArrayNodeAdapter.this.get(index).toJsonNode();
+		return ArrayGraphNode.this.get(index).toJsonNode();
 	    }
 
 	    @Override
 	    public int size() {
-		return ArrayNodeAdapter.this.size();
+		return ArrayGraphNode.this.size();
 	    }
 	};
     }

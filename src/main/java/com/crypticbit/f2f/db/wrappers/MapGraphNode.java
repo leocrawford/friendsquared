@@ -33,13 +33,13 @@ import com.jayway.jsonpath.JsonPath;
  * @author leo
  * 
  */
-public class MapNodeAdapter extends AbstractMap<String, GraphNode> implements
+public class MapGraphNode extends AbstractMap<String, GraphNode> implements
 	GraphNode {
 
     private Node node;
     private Set<Map.Entry<String, GraphNode>> entries;
 
-    public MapNodeAdapter(Node node) {
+    public MapGraphNode(Node node) {
 	this.node = node;
     }
 
@@ -129,7 +129,7 @@ public class MapNodeAdapter extends AbstractMap<String, GraphNode> implements
 
 		    @Override
 		    public Iterator<Map.Entry<String, JsonNode>> iterator() {
-			final Iterator<Map.Entry<String, GraphNode>> i = MapNodeAdapter.this.entrySet().iterator();
+			final Iterator<Map.Entry<String, GraphNode>> i = MapGraphNode.this.entrySet().iterator();
 			return new Iterator<Map.Entry<String, JsonNode>>() {
 
 			    @Override
@@ -156,7 +156,7 @@ public class MapNodeAdapter extends AbstractMap<String, GraphNode> implements
 
 		    @Override
 		    public int size() {
-			return MapNodeAdapter.this.entrySet().size();
+			return MapGraphNode.this.entrySet().size();
 		    }
 		};
 	    }

@@ -2,29 +2,29 @@ package com.crypticbit.f2f.db.types;
 
 import org.neo4j.graphdb.Node;
 
-import com.crypticbit.f2f.db.wrappers.ArrayNodeAdapter;
-import com.crypticbit.f2f.db.wrappers.MapNodeAdapter;
+import com.crypticbit.f2f.db.wrappers.ArrayGraphNode;
+import com.crypticbit.f2f.db.wrappers.MapGraphNode;
 import com.crypticbit.f2f.db.wrappers.GraphNode;
-import com.crypticbit.f2f.db.wrappers.WrapValueNodeAdapter;
+import com.crypticbit.f2f.db.wrappers.ValueGraphNode;
 
 public enum NodeTypes {
     ARRAY() {
 	@Override
 	GraphNode _wrapAsGraphNode(Node graphNode) {
-	    return new ArrayNodeAdapter(graphNode);
+	    return new ArrayGraphNode(graphNode);
 	}
 
     },
     MAP() {
 	@Override
 	GraphNode _wrapAsGraphNode(Node graphNode) {
-	    return new MapNodeAdapter(graphNode);
+	    return new MapGraphNode(graphNode);
 	}
     },
     VALUE() {
 	@Override
 	GraphNode _wrapAsGraphNode(Node graphNode) {
-	    return new WrapValueNodeAdapter(graphNode);
+	    return new ValueGraphNode(graphNode);
 	}
     };
     public static GraphNode wrapAsGraphNode(Node graphNode) {
