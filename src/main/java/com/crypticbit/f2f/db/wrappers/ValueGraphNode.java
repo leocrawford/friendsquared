@@ -4,6 +4,7 @@ import java.io.IOException;
 
 import org.neo4j.graphdb.Node;
 
+import com.crypticbit.f2f.db.JsonPersistenceException;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.JsonToken;
@@ -89,7 +90,7 @@ public class ValueGraphNode extends ValueNode implements GraphNode {
     // delegate methods
 
     @Override
-    public void put(JsonNode values) {
+    public void put(String values) throws IllegalJsonException, JsonPersistenceException {
 	virtualSuperclass.put(values);
     }
 

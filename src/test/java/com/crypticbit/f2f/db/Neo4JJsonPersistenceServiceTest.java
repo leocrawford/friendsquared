@@ -7,6 +7,7 @@ import java.nio.file.Files;
 
 import org.junit.Test;
 
+import com.crypticbit.f2f.db.wrappers.IllegalJsonException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jayway.jsonpath.JsonPath;
 
@@ -16,12 +17,12 @@ public class Neo4JJsonPersistenceServiceTest {
     private static ObjectMapper mapper = new ObjectMapper();
 
     @Test
-    public void testFindFromRoot() throws IOException, JsonPersistenceException {
+    public void testFindFromRoot() throws IOException, JsonPersistenceException, IllegalJsonException {
 	Neo4JJsonPersistenceService ps = new Neo4JJsonPersistenceService(Files.createTempDirectory("neo4j_test")
 		.toFile());
-	ps.getRootJsonNode().put(mapper.readTree(jsonText));
+	ps.getRootJsonNode().put(jsonText);
 	System.out.println(ps.getRootJsonNode().toJsonString());
-	ps.getRootJsonNode().navigate("second").put(mapper.readTree("\"blah blah\""));
+	ps.getRootJsonNode().navigate("second").put("\"blah blah\"");
 	System.out.println(ps.getRootJsonNode().toJsonString());
 	// ps.put(JsonPath.compile("second[0]"),
 	// ps.get(JsonPath.compile("second[4]")));
@@ -32,11 +33,11 @@ public class Neo4JJsonPersistenceServiceTest {
     }
 
     @Test
-    public void testGetRootJsonNode() throws IOException, JsonPersistenceException {
+    public void testGetRootJsonNode() throws IOException, JsonPersistenceException, IllegalJsonException {
 	Neo4JJsonPersistenceService ps = new Neo4JJsonPersistenceService(Files.createTempDirectory("neo4j_test")
 		.toFile());
 
-	ps.getRootJsonNode().put(mapper.readTree(jsonText)); // we have to
+	ps.getRootJsonNode().put(jsonText); // we have to
 							     // convert our
 							     // return value to
 							     // get rid of

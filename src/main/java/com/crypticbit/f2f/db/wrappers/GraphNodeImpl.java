@@ -1,5 +1,7 @@
 package com.crypticbit.f2f.db.wrappers;
 
+import java.io.IOException;
+
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
@@ -9,10 +11,12 @@ import com.crypticbit.f2f.db.strategies.Context;
 import com.crypticbit.f2f.db.strategies.StrategyChainFactory;
 import com.crypticbit.f2f.db.strategies.UnversionedVersionStrategy;
 import com.crypticbit.f2f.db.strategies.VersionStrategy;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jayway.jsonpath.JsonPath;
 
-public class GraphNodeImpl implements GraphNode{
+public class GraphNodeImpl implements GraphNode {
 
     private GraphNode graphNode;
 
@@ -24,15 +28,23 @@ public class GraphNodeImpl implements GraphNode{
 	return JsonPath.compile(path).read(graphNode);
     }
 
-    public void put(JsonNode values) {
+    public void put(String json) throws IllegalJsonException, JsonPersistenceException {
 	Transaction tx = getDatabaseService().beginTx();
 	try {
+	    JsonNode values = new ObjectMapper().readTree(json);
 	    put(values, new StrategyChainFactory().createVersionStrategies(UnversionedVersionStrategy.class),
 		    new Context(tx, getDatabaseService()));
 	    tx.success();
-	} catch (JsonPersistenceException e) {
+	} catch (JsonPersistenceException jpe) {
 	    tx.failure();
-	    e.printStackTrace();
+	    throw jpe;
+	} catch (JsonProcessingException jpe) {
+	    tx.failure();
+	    throw new IllegalJsonException("The JSON string was badly formed: " + json, jpe);
+	} catch (IOException e) {
+	    tx.failure();
+	    throw new JsonPersistenceException("IOException whilst writing data to database", e);
+
 	} finally {
 	    tx.finish();
 	}

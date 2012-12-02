@@ -134,7 +134,7 @@ public class MapGraphNode extends AbstractMap<String, GraphNode> implements Grap
     }
 
     @Override
-    public void put(JsonNode values) {
+    public void put(String values) throws IllegalJsonException, JsonPersistenceException {
 	virtualSuperclass.put(values);
     }
 

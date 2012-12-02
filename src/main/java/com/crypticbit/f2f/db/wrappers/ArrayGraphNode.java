@@ -113,7 +113,7 @@ public class ArrayGraphNode extends AbstractList<GraphNode> implements GraphNode
     }
 
     @Override
-    public void put(JsonNode values) {
+    public void put(String values) throws IllegalJsonException, JsonPersistenceException {
 	virtualSuperclass.put(values);
     }
 
