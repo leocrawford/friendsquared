@@ -1,4 +1,4 @@
-package com.crypticbit.f2f.db.wrappers;
+package com.crypticbit.f2f.db;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 

@@ -1,4 +1,4 @@
-package com.crypticbit.f2f.db.types;
+package com.crypticbit.f2f.db.neo4j.types;
 
 import org.neo4j.graphdb.RelationshipType;
 

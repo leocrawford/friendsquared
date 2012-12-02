@@ -6,8 +6,8 @@ import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.factory.GraphDatabaseFactory;
 
-import com.crypticbit.f2f.db.types.NodeTypes;
-import com.crypticbit.f2f.db.wrappers.GraphNode;
+import com.crypticbit.f2f.db.neo4j.types.NodeTypes;
+import com.crypticbit.f2f.db.neo4j.wrappers.GraphNode;
 
 /**
  * Provides persistence for Json objects (depicted using Jackson JsonNode) with

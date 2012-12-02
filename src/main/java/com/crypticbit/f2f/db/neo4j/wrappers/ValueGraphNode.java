@@ -1,9 +1,10 @@
-package com.crypticbit.f2f.db.wrappers;
+package com.crypticbit.f2f.db.neo4j.wrappers;
 
 import java.io.IOException;
 
 import org.neo4j.graphdb.Node;
 
+import com.crypticbit.f2f.db.IllegalJsonException;
 import com.crypticbit.f2f.db.JsonPersistenceException;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonProcessingException;

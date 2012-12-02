@@ -1,4 +1,4 @@
-package com.crypticbit.f2f.db.wrappers;
+package com.crypticbit.f2f.db.neo4j.wrappers;
 
 import java.util.AbstractList;
 import java.util.List;
@@ -11,13 +11,14 @@ import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.Transaction;
 
+import com.crypticbit.f2f.db.IllegalJsonException;
 import com.crypticbit.f2f.db.JsonPersistenceException;
-import com.crypticbit.f2f.db.strategies.Context;
-import com.crypticbit.f2f.db.strategies.StrategyChainFactory;
-import com.crypticbit.f2f.db.strategies.UnversionedVersionStrategy;
-import com.crypticbit.f2f.db.strategies.VersionStrategy;
-import com.crypticbit.f2f.db.types.NodeTypes;
-import com.crypticbit.f2f.db.types.RelationshipTypes;
+import com.crypticbit.f2f.db.neo4j.strategies.Context;
+import com.crypticbit.f2f.db.neo4j.strategies.StrategyChainFactory;
+import com.crypticbit.f2f.db.neo4j.strategies.UnversionedVersionStrategy;
+import com.crypticbit.f2f.db.neo4j.strategies.VersionStrategy;
+import com.crypticbit.f2f.db.neo4j.types.NodeTypes;
+import com.crypticbit.f2f.db.neo4j.types.RelationshipTypes;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.jayway.jsonpath.JsonPath;

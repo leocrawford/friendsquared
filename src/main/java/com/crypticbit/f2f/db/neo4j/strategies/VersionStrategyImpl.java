@@ -1,4 +1,4 @@
-package com.crypticbit.f2f.db.strategies;
+package com.crypticbit.f2f.db.neo4j.strategies;
 
 public abstract class VersionStrategyImpl implements VersionStrategy {
 

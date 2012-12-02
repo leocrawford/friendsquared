@@ -1,8 +1,8 @@
-package com.crypticbit.f2f.db.strategies;
+package com.crypticbit.f2f.db.neo4j.strategies;
 
 import org.neo4j.graphdb.Node;
 
-import com.crypticbit.f2f.db.types.RelationshipTypes;
+import com.crypticbit.f2f.db.neo4j.types.RelationshipTypes;
 import com.fasterxml.jackson.databind.JsonNode;
 
 public class TimestampVersionStrategy extends VersionStrategyImpl {

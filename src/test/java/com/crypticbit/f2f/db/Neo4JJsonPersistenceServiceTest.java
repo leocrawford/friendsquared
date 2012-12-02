@@ -7,7 +7,6 @@ import java.nio.file.Files;
 
 import org.junit.Test;
 
-import com.crypticbit.f2f.db.wrappers.IllegalJsonException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jayway.jsonpath.JsonPath;
 
