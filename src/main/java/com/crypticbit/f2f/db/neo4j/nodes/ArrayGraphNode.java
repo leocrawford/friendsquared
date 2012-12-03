@@ -1,27 +1,28 @@
 package com.crypticbit.f2f.db.neo4j.nodes;
 
+import java.io.IOException;
 import java.util.AbstractList;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
 import org.neo4j.graphdb.Direction;
-import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.Transaction;
 
+import com.crypticbit.f2f.db.History;
 import com.crypticbit.f2f.db.IllegalJsonException;
 import com.crypticbit.f2f.db.JsonPersistenceException;
+import com.crypticbit.f2f.db.neo4j.Neo4JGraphNode;
 import com.crypticbit.f2f.db.neo4j.strategies.Context;
-import com.crypticbit.f2f.db.neo4j.strategies.StrategyChainFactory;
-import com.crypticbit.f2f.db.neo4j.strategies.UnversionedVersionStrategy;
 import com.crypticbit.f2f.db.neo4j.strategies.VersionStrategy;
 import com.crypticbit.f2f.db.neo4j.types.NodeTypes;
 import com.crypticbit.f2f.db.neo4j.types.RelationshipTypes;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.jayway.jsonpath.JsonPath;
 
 /**
  * This class hold GraphNodes that represent array's. It provides conversions to
@@ -30,20 +31,21 @@ import com.jayway.jsonpath.JsonPath;
  * @author leo
  * 
  */
-public class ArrayGraphNode extends AbstractList<GraphNode> implements GraphNode {
+public class ArrayGraphNode extends AbstractList<Neo4JGraphNode> implements Neo4JGraphNode {
 
     private Node node;
-    private GraphNode children[];
+    private Neo4JGraphNode children[];
     private GraphNodeImpl virtualSuperclass;
 
-    /** Create a node that represents this graph node */
-    public ArrayGraphNode(Node node) {
+    /** Create a node that represents this graph node 
+     * @param incomingRelationship */
+    public ArrayGraphNode(Node node, Relationship incomingRelationship) {
 	this.node = node;
-	this.virtualSuperclass = new GraphNodeImpl(this);
+	this.virtualSuperclass = new GraphNodeImpl(this,incomingRelationship);
     }
 
     @Override
-    public GraphNode get(int index) {
+    public Neo4JGraphNode get(int index) {
 	updateNodes();
 	return children[index];
     }
@@ -66,11 +68,11 @@ public class ArrayGraphNode extends AbstractList<GraphNode> implements GraphNode
      */
     public void updateNodes() {
 	if (children == null) {
-	    Map<Integer, GraphNode> map = new TreeMap<Integer, GraphNode>();
+	    Map<Integer, Neo4JGraphNode> map = new TreeMap<Integer, Neo4JGraphNode>();
 	    for (Relationship r : node.getRelationships(RelationshipTypes.ARRAY, Direction.OUTGOING)) {
-		map.put((Integer) r.getProperty("index"), NodeTypes.wrapAsGraphNode(r.getEndNode()));
+		map.put((Integer) r.getProperty("index"), NodeTypes.wrapAsGraphNode(r.getEndNode(),r));
 	    }
-	    children = map.values().toArray(new GraphNode[map.size()]);
+	    children = map.values().toArray(new Neo4JGraphNode[map.size()]);
 	}
     }
 
@@ -104,7 +106,7 @@ public class ArrayGraphNode extends AbstractList<GraphNode> implements GraphNode
     // delegate methods
 
     @Override
-    public GraphNode navigate(String path) {
+    public Neo4JGraphNode navigate(String path) {
 	return virtualSuperclass.navigate(path);
     }
 
@@ -114,8 +116,47 @@ public class ArrayGraphNode extends AbstractList<GraphNode> implements GraphNode
     }
 
     @Override
-    public void put(String values) throws IllegalJsonException, JsonPersistenceException {
-	virtualSuperclass.put(values);
+    public void overwrite(String values) throws IllegalJsonException, JsonPersistenceException {
+	virtualSuperclass.overwrite(values);
+    }
+
+    @Override
+    public List<History> getHistory() {
+	return virtualSuperclass.getHistory();
+    }
+
+    @Override
+    public long getTimestamp() {
+	return virtualSuperclass.getTimestamp();
+    }
+
+    @Override
+    public void put(String key, String json) throws JsonPersistenceException {
+	throw new JsonPersistenceException("It's not possible to add a map element to an array node");
+    }
+
+    @Override
+    public void add(String json) throws IllegalJsonException, JsonPersistenceException {
+	Transaction tx = node.getGraphDatabase().beginTx();
+	try {
+	    JsonNode values = new ObjectMapper().readTree(json);
+	    getStrategy().addNodeToArray(new Context(tx, node.getGraphDatabase()), node, values);
+	    tx.success();
+	} catch (JsonProcessingException jpe) {
+	    tx.failure();
+	    throw new IllegalJsonException("The JSON string was badly formed: " + json, jpe);
+	} catch (IOException e) {
+	    tx.failure();
+	    throw new JsonPersistenceException("IOException whilst writing data to database", e);
+	} finally {
+	    tx.finish();
+	}
+
+    }
+    
+    @Override
+    public VersionStrategy getStrategy() {
+	return virtualSuperclass.getStrategy();
     }
 
 }

@@ -1,11 +1,16 @@
 package com.crypticbit.f2f.db.neo4j.nodes;
 
 import java.io.IOException;
+import java.util.List;
 
 import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Relationship;
 
+import com.crypticbit.f2f.db.History;
 import com.crypticbit.f2f.db.IllegalJsonException;
 import com.crypticbit.f2f.db.JsonPersistenceException;
+import com.crypticbit.f2f.db.neo4j.Neo4JGraphNode;
+import com.crypticbit.f2f.db.neo4j.strategies.VersionStrategy;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.JsonToken;
@@ -14,18 +19,17 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.node.BaseJsonNode;
 import com.fasterxml.jackson.databind.node.ValueNode;
-import com.jayway.jsonpath.JsonPath;
 
-public class ValueGraphNode extends ValueNode implements GraphNode {
+public class ValueGraphNode extends ValueNode implements Neo4JGraphNode {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     private JsonNode delegate;
     private Node node;
     private GraphNodeImpl virtualSuperclass;
 
-    public ValueGraphNode(Node graphNode) {
+    public ValueGraphNode(Node graphNode, Relationship incomingRelationship) {
 	this.node = graphNode;
-	virtualSuperclass = new GraphNodeImpl(this);
+	virtualSuperclass = new GraphNodeImpl(this,incomingRelationship);
 	try {
 	    if (graphNode.hasProperty("value")) {
 		this.delegate = OBJECT_MAPPER.readTree((String) graphNode.getProperty("value"));
@@ -58,7 +62,7 @@ public class ValueGraphNode extends ValueNode implements GraphNode {
     }
 
     @Override
-    public GraphNode navigate(String path) {
+    public Neo4JGraphNode navigate(String path) {
 	throw new Error("Not possible to navigate from leaf object");
     }
 
@@ -91,10 +95,33 @@ public class ValueGraphNode extends ValueNode implements GraphNode {
     // delegate methods
 
     @Override
-    public void put(String values) throws IllegalJsonException, JsonPersistenceException {
-	virtualSuperclass.put(values);
+    public void overwrite(String values) throws IllegalJsonException, JsonPersistenceException {
+	virtualSuperclass.overwrite(values);
     }
 
+    @Override
+    public List<History> getHistory() {
+	return virtualSuperclass.getHistory();
+    }
 
+    @Override
+    public long getTimestamp() {
+	return virtualSuperclass.getTimestamp();
+    }
 
+    @Override
+    public void put(String key, String json) throws JsonPersistenceException {
+	throw new JsonPersistenceException("It's not possible to add data to a child node. ");
+    }
+
+    @Override
+    public void add(String json) throws JsonPersistenceException {
+	throw new JsonPersistenceException("It's not possible to add data to a child node. ");
+    }
+
+    @Override
+    public VersionStrategy getStrategy() {
+	return virtualSuperclass.getStrategy();
+    }
+    
 }

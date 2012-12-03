@@ -20,10 +20,13 @@ public class Neo4JJsonPersistenceServiceTest {
     public void testFindFromRoot() throws IOException, JsonPersistenceException, IllegalJsonException {
 	Neo4JJsonPersistenceService ps = new Neo4JJsonPersistenceService(Files.createTempDirectory("neo4j_test")
 		.toFile());
-	ps.put(jsonText);
+	ps.overwrite(jsonText);
 	System.out.println(ps.toJsonString());
-	ps.navigate("second").put("\"blah blah\"");
+	ps.navigate("second").overwrite("\"blah blah\"");
 	System.out.println(ps.toJsonString());
+	ps.navigate("second").overwrite("\"blah 1\"");	
+	System.out.println(ps.toJsonString());
+	System.out.println(ps.navigate("second").getHistory());
 	// ps.put(JsonPath.compile("second[0]"),
 	// ps.get(JsonPath.compile("second[4]")));
 	// System.out.println(ps.getRootJsonNode());
@@ -37,7 +40,7 @@ public class Neo4JJsonPersistenceServiceTest {
 	Neo4JJsonPersistenceService ps = new Neo4JJsonPersistenceService(Files.createTempDirectory("neo4j_test")
 		.toFile());
 
-	ps.put(jsonText); // we have to
+	ps.overwrite(jsonText); // we have to
 							     // convert our
 							     // return value to
 							     // get rid of

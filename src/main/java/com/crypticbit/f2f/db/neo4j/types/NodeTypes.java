@@ -1,40 +1,41 @@
 package com.crypticbit.f2f.db.neo4j.types;
 
 import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Relationship;
 
+import com.crypticbit.f2f.db.neo4j.Neo4JGraphNode;
 import com.crypticbit.f2f.db.neo4j.nodes.ArrayGraphNode;
-import com.crypticbit.f2f.db.neo4j.nodes.GraphNode;
 import com.crypticbit.f2f.db.neo4j.nodes.MapGraphNode;
 import com.crypticbit.f2f.db.neo4j.nodes.ValueGraphNode;
 
 public enum NodeTypes {
     ARRAY() {
 	@Override
-	GraphNode _wrapAsGraphNode(Node graphNode) {
-	    return new ArrayGraphNode(graphNode);
+	Neo4JGraphNode _wrapAsGraphNode(Node graphNode, Relationship incomingRelationship) {
+	    return new ArrayGraphNode(graphNode, incomingRelationship);
 	}
 
     },
     MAP() {
 	@Override
-	GraphNode _wrapAsGraphNode(Node graphNode) {
-	    return new MapGraphNode(graphNode);
+	Neo4JGraphNode _wrapAsGraphNode(Node graphNode, Relationship incomingRelationship) {
+	    return new MapGraphNode(graphNode, incomingRelationship);
 	}
     },
     VALUE() {
 	@Override
-	GraphNode _wrapAsGraphNode(Node graphNode) {
-	    return new ValueGraphNode(graphNode);
+	Neo4JGraphNode _wrapAsGraphNode(Node graphNode, Relationship incomingRelationship) {
+	    return new ValueGraphNode(graphNode, incomingRelationship);
 	}
     };
-    public static GraphNode wrapAsGraphNode(Node graphNode) {
+    public static Neo4JGraphNode wrapAsGraphNode(Node graphNode, Relationship incomingRelationship) {
 	if (graphNode.hasProperty("type"))
-	    return valueOf((String) graphNode.getProperty("type"))._wrapAsGraphNode(graphNode);
+	    return valueOf((String) graphNode.getProperty("type"))._wrapAsGraphNode(graphNode,incomingRelationship);
 	else
 	    // Let's do our best to make it a value node - especially for the
 	    // default root element
-	    return VALUE._wrapAsGraphNode(graphNode);
+	    return VALUE._wrapAsGraphNode(graphNode, incomingRelationship);
     }
 
-    abstract GraphNode _wrapAsGraphNode(Node graphNode);
+    abstract Neo4JGraphNode _wrapAsGraphNode(Node graphNode, Relationship incomingRelationship);
 }

@@ -4,18 +4,20 @@ import java.lang.reflect.InvocationTargetException;
 
 public class StrategyChainFactory {
 
-    public VersionStrategy createVersionStrategies(Class<? extends VersionStrategy>... classes) {
-	VersionStrategy parent = null;
+    public VersionStrategy createVersionStrategies(Class<? extends VersionStrategyImpl>... classes) {
+	VersionStrategyImpl successor = null;
 	for (int i = classes.length - 1; i >= 0; i--) {
 	    try {
-		parent = classes[i].getConstructor(VersionStrategy.class).newInstance(parent);
+		successor = classes[i].getConstructor(VersionStrategyImpl.class).newInstance(successor);
 	    } catch (InstantiationException | IllegalAccessException | IllegalArgumentException
 		    | InvocationTargetException | NoSuchMethodException | SecurityException e) {
 		// TODO Auto-generated catch block
 		e.printStackTrace();
 	    }
 	}
-	return parent;
+	for(VersionStrategyImpl vs = successor; vs != null; vs = vs.getSuccessor())
+	    vs.setRoot(successor);
+	return successor;
     }
 
 }

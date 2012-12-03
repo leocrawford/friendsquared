@@ -1,15 +1,18 @@
 package com.crypticbit.f2f.db.neo4j;
 
 import java.io.File;
+import java.util.List;
 
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.factory.GraphDatabaseFactory;
 
+import com.crypticbit.f2f.db.History;
 import com.crypticbit.f2f.db.IllegalJsonException;
 import com.crypticbit.f2f.db.JsonPersistenceException;
 import com.crypticbit.f2f.db.JsonPersistenceService;
-import com.crypticbit.f2f.db.neo4j.nodes.GraphNode;
+import com.crypticbit.f2f.db.neo4j.strategies.VersionStrategy;
 import com.crypticbit.f2f.db.neo4j.types.NodeTypes;
 import com.fasterxml.jackson.databind.JsonNode;
 
@@ -20,7 +23,7 @@ import com.fasterxml.jackson.databind.JsonNode;
  * @author leo
  * 
  */
-public class Neo4JJsonPersistenceService implements JsonPersistenceService {
+public class Neo4JJsonPersistenceService implements JsonPersistenceService, Neo4JGraphNode {
 
     /**
      * Registers a shutdown hook for the Neo4j instance so that it shuts down
@@ -67,11 +70,22 @@ public class Neo4JJsonPersistenceService implements JsonPersistenceService {
     }
 
     /**
-     * Get the root of the tree - which could be pretty big, but lucily
+     * Get the root of the tree - which could be pretty big, therefore
      * everything is lazily loaded
      */
-    private GraphNode getRootGraphNode() {
-	return NodeTypes.wrapAsGraphNode(getDatabaseNode());
+    private Neo4JGraphNode getRootGraphNode() {
+	// this extra step (root of the root) is so we can readily change it
+	// later, and normal logic keeps working
+	return (Neo4JGraphNode) getReferenceGraphNode().navigate("root");
+    }
+
+    /**
+     * This is the real root of the tree, but by exposing a node of this as the
+     * conceptual root, we can do operations that require a parent without any
+     * special code
+     */
+    private Neo4JGraphNode getReferenceGraphNode() {
+	return NodeTypes.wrapAsGraphNode(getDatabaseNode(),null);
     }
 
     /** Get the root of the graph */
@@ -84,18 +98,28 @@ public class Neo4JJsonPersistenceService implements JsonPersistenceService {
 	graphDb = new GraphDatabaseFactory().newEmbeddedDatabase(file.getAbsolutePath());
 	registerShutdownHook(graphDb);
 	referenceNode = graphDb.getReferenceNode();
+	Transaction tx = graphDb.beginTx();
+	try {
+	referenceNode.setProperty("type", NodeTypes.MAP.toString());
+	} catch (Exception e) {
+	    tx.failure();
+	    e.printStackTrace();
+	}
+	finally {
+	    tx.success();
+	}
 
     }
 
     @Override
-    public GraphNode navigate(String jsonPath) {
-return getRootGraphNode().navigate(jsonPath);
+    public Neo4JGraphNode navigate(String jsonPath) {
+	return (Neo4JGraphNode) getRootGraphNode().navigate(jsonPath);
     }
 
     @Override
-    public void put(String json) throws IllegalJsonException, JsonPersistenceException {
-	getRootGraphNode().put(json);
-	
+    public void overwrite(String json) throws IllegalJsonException, JsonPersistenceException {
+	getReferenceGraphNode().put("root",json);
+
     }
 
     @Override
@@ -108,6 +132,31 @@ return getRootGraphNode().navigate(jsonPath);
 	return getRootGraphNode().toJsonString();
     }
 
- 
+    @Override
+    public List<History> getHistory() {
+	return getRootGraphNode().getHistory();
+    }
+
+    @Override
+    public long getTimestamp() {
+	return getRootGraphNode().getTimestamp();
+    }
+
+    @Override
+    public void put(String key, String json) throws IllegalJsonException, JsonPersistenceException {
+	getRootGraphNode().put(key, json);
+	
+    }
+
+    @Override
+    public void add(String json) throws IllegalJsonException, JsonPersistenceException {
+	getRootGraphNode().add(json);
+	
+    }
+
+    @Override
+    public VersionStrategy getStrategy() {
+	return getRootGraphNode().getStrategy();
+    }
 
 }
