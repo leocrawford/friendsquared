@@ -19,6 +19,7 @@ import com.crypticbit.f2f.db.neo4j.strategies.StrategyChainFactory;
 import com.crypticbit.f2f.db.neo4j.strategies.TimestampVersionStrategy;
 import com.crypticbit.f2f.db.neo4j.strategies.UnversionedVersionStrategy;
 import com.crypticbit.f2f.db.neo4j.strategies.VersionStrategy;
+import com.crypticbit.f2f.db.neo4j.types.NodeTypes;
 import com.crypticbit.f2f.db.neo4j.types.RelationshipTypes;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -58,7 +59,7 @@ public class GraphNodeImpl implements Neo4JGraphNode {
 
     public VersionStrategy getStrategy() {
 	return new StrategyChainFactory().createVersionStrategies(
-//		TimestampVersionStrategy.class,
+		TimestampVersionStrategy.class,
 		UnversionedVersionStrategy.class);
     }
 
@@ -84,6 +85,8 @@ public class GraphNodeImpl implements Neo4JGraphNode {
 
     @Override
     public List<History> getHistory() {
+	
+	
 	if (history == null) {
 	    history = new LinkedList<History>();
 	    history.add(new History() {
@@ -104,7 +107,8 @@ public class GraphNodeImpl implements Neo4JGraphNode {
 	    });
 	    for (Relationship r : graphNode.getDatabaseNode().getRelationships(RelationshipTypes.HISTORY,
 		    Direction.OUTGOING)) {
-		final Neo4JGraphNode endNode = (Neo4JGraphNode) r.getEndNode();
+	
+		final Neo4JGraphNode endNode = NodeTypes.wrapAsGraphNode(r.getOtherNode(graphNode.getDatabaseNode()),r);
 		history.addAll(endNode.getHistory());
 	    }
 	}

@@ -22,8 +22,8 @@ public class UnversionedVersionStrategy extends VersionStrategyImpl {
 	parent.createRelationshipTo(getRoot().createNewNode(context,json), RelationshipTypes.MAP).setProperty("name", key);
     }
 
-    public void addNodeToArray(Context context, Node parent, JsonNode json) {
-	addNodeToArray(context, parent, json, findNextUnusedIndex(parent));
+    public void addElementToArray(Context context, Node parent, JsonNode json) {
+	addElementToArray(context, parent, json, findNextUnusedIndex(parent));
     }
 
     public Node createNewNode(Context context, JsonNode json) {
@@ -32,18 +32,28 @@ public class UnversionedVersionStrategy extends VersionStrategyImpl {
 	return newNode;
     }
 
-    public void replaceNode(Context context, Relationship oldRelationship, JsonNode values) {
-	Relationship newRealtionship = oldRelationship.getStartNode().createRelationshipTo(
+    public Relationship replaceNode(Context context, Relationship oldRelationship, JsonNode values) {
+	Relationship newRelationship = oldRelationship.getStartNode().createRelationshipTo(
 		getRoot().createNewNode(context, values), oldRelationship.getType());
 	// clone properties
 	for (String key : oldRelationship.getPropertyKeys()) {
-	    newRealtionship.setProperty(key, oldRelationship.getProperty(key));
+	    newRelationship.setProperty(key, oldRelationship.getProperty(key));
 	}
+	getRoot().replaceRelationship(oldRelationship, newRelationship);
+
+	return newRelationship;
+    }
+
+
+    @Override
+    public void replaceRelationship(Relationship oldRelationship, Relationship newRelationship) {
 	// remove old relationship
 	oldRelationship.delete();
     }
+    
 
-    public void addNodeToArray(Context context, Node parent, JsonNode json, int index) {
+    
+    public void addElementToArray(Context context, Node parent, JsonNode json, int index) {
 	parent.createRelationshipTo(getRoot().createNewNode(context,json), RelationshipTypes.ARRAY).setProperty("index", index);
     }
 
@@ -52,7 +62,7 @@ public class UnversionedVersionStrategy extends VersionStrategyImpl {
 	    if (jsonNode.isArray()) {
 		graphNode.setProperty("type", NodeTypes.ARRAY.toString());
 		for (int loop = 0; loop < jsonNode.size(); loop++) {
-		    getRoot().addNodeToArray(context, graphNode, jsonNode.get(loop), loop);
+		    getRoot().addElementToArray(context, graphNode, jsonNode.get(loop), loop);
 		}
 	    }
 	    if (jsonNode.isObject()) {
@@ -78,4 +88,5 @@ public class UnversionedVersionStrategy extends VersionStrategyImpl {
 	}
 	return max + 1;
     }
+
 }

@@ -7,6 +7,8 @@ import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.factory.GraphDatabaseFactory;
+import org.neo4j.kernel.AbstractGraphDatabase;
+import org.neo4j.server.WrappingNeoServerBootstrapper;
 
 import com.crypticbit.f2f.db.History;
 import com.crypticbit.f2f.db.IllegalJsonException;
@@ -85,7 +87,7 @@ public class Neo4JJsonPersistenceService implements JsonPersistenceService, Neo4
      * special code
      */
     private Neo4JGraphNode getReferenceGraphNode() {
-	return NodeTypes.wrapAsGraphNode(getDatabaseNode(),null);
+	return NodeTypes.wrapAsGraphNode(getDatabaseNode(), null);
     }
 
     /** Get the root of the graph */
@@ -100,15 +102,27 @@ public class Neo4JJsonPersistenceService implements JsonPersistenceService, Neo4
 	referenceNode = graphDb.getReferenceNode();
 	Transaction tx = graphDb.beginTx();
 	try {
-	referenceNode.setProperty("type", NodeTypes.MAP.toString());
-	} catch (Exception e) {
-	    tx.failure();
-	    e.printStackTrace();
-	}
-	finally {
+	    referenceNode.setProperty("type", NodeTypes.MAP.toString());
 	    tx.success();
+	} catch (Exception e) {
+	    e.printStackTrace();
+	} finally {
+	    tx.finish();
 	}
 
+    }
+
+    // only for server
+    private WrappingNeoServerBootstrapper srv;
+
+    public void startWebService() {
+	srv = new WrappingNeoServerBootstrapper((AbstractGraphDatabase) graphDb);
+	srv.start();
+	System.out.println("Started server: "+srv.getServer().toString());
+    }
+
+    public void stopWebService() {
+	srv.stop();
     }
 
     @Override
@@ -118,7 +132,7 @@ public class Neo4JJsonPersistenceService implements JsonPersistenceService, Neo4
 
     @Override
     public void overwrite(String json) throws IllegalJsonException, JsonPersistenceException {
-	getReferenceGraphNode().put("root",json);
+	getReferenceGraphNode().put("root", json);
 
     }
 
@@ -145,18 +159,22 @@ public class Neo4JJsonPersistenceService implements JsonPersistenceService, Neo4
     @Override
     public void put(String key, String json) throws IllegalJsonException, JsonPersistenceException {
 	getRootGraphNode().put(key, json);
-	
+
     }
 
     @Override
     public void add(String json) throws IllegalJsonException, JsonPersistenceException {
 	getRootGraphNode().add(json);
-	
+
     }
 
     @Override
     public VersionStrategy getStrategy() {
 	return getRootGraphNode().getStrategy();
+    }
+
+    public void close() {
+	graphDb.shutdown();
     }
 
 }

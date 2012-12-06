@@ -9,9 +9,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 public interface VersionStrategy {
 
     public void addElementToMap(Context context, Node parent, JsonNode json, String key) ;
-    public void addNodeToArray(Context context, Node parent, JsonNode json);
-    public void addNodeToArray(Context context, Node parent, JsonNode json, int index);
+    public void addElementToArray(Context context, Node parent, JsonNode json);
+    public void addElementToArray(Context context, Node parent, JsonNode json, int index);
     public Node createNewNode(Context context, JsonNode jsonNode);
-    public void replaceNode(Context context, Relationship oldRelationship, JsonNode values);
-   
+    public Relationship replaceNode(Context context, Relationship oldRelationship, JsonNode values);
+    public void replaceRelationship(Relationship oldRelationship, Relationship newRelationship);
 }

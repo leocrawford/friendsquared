@@ -140,7 +140,7 @@ public class ArrayGraphNode extends AbstractList<Neo4JGraphNode> implements Neo4
 	Transaction tx = node.getGraphDatabase().beginTx();
 	try {
 	    JsonNode values = new ObjectMapper().readTree(json);
-	    getStrategy().addNodeToArray(new Context(tx, node.getGraphDatabase()), node, values);
+	    getStrategy().addElementToArray(new Context(tx, node.getGraphDatabase()), node, values);
 	    tx.success();
 	} catch (JsonProcessingException jpe) {
 	    tx.failure();

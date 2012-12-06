@@ -12,44 +12,46 @@ public class TimestampVersionStrategy extends VersionStrategyImpl {
 	super(successor);
     }
 
-    private static Node createNewVersion(Context context, Node oldNode) {
-	Node newNode;
-	newNode = context.getGraphDb().createNode();
-	newNode.createRelationshipTo(oldNode, RelationshipTypes.HISTORY);
-	newNode.setProperty("timestamp", System.currentTimeMillis());
-	return newNode;
-    }
+//    @Override
+//    public void addElementToMap(Context context, Node parent, JsonNode json, String key) {
+//	// TODO Auto-generated method stub
+//
+//    }
 
-    @Override
-    public void addElementToMap(Context context, Node parent, JsonNode json, String key) {
-	// TODO Auto-generated method stub
-	
-    }
+//    @Override
+//    public void addNodeToArray(Context context, Node parent, JsonNode json) {
+//	// TODO Auto-generated method stub
+//
+//    }
 
-    @Override
-    public void addNodeToArray(Context context, Node parent, JsonNode json) {
-	// TODO Auto-generated method stub
-	
-    }
-
-    @Override
-    public void addNodeToArray(Context context, Node parent, JsonNode json, int index) {
-	// TODO Auto-generated method stub
-	
-    }
+//    @Override
+//    public void addNodeToArray(Context context, Node parent, JsonNode json, int index) {
+//	// TODO Auto-generated method stub
+//
+//    }
 
     @Override
     public Node createNewNode(Context context, JsonNode jsonNode) {
-	// TODO Auto-generated method stub
-	return null;
+	Node successorResult = getSuccessor().createNewNode(context, jsonNode);
+	successorResult.setProperty("timestamp", System.currentTimeMillis());
+	return successorResult;
     }
+
+//    @Override
+//    public Relationship replaceNode(Context context, Relationship oldRelationship, JsonNode values) {
+//    }
 
     @Override
-    public void replaceNode(Context context, Relationship oldRelationship, JsonNode values) {
-	// TODO Auto-generated method stub
-	
+    public void replaceRelationship(Relationship oldRelationship, Relationship newRelationship) {
+	addHistoryToNode(newRelationship.getEndNode(), oldRelationship.getEndNode());
+	addHistoryToNode(newRelationship.getStartNode(), oldRelationship.getStartNode());
+
     }
 
+    private void addHistoryToNode(Node newNode, Node oldNode) {
+	if (newNode != oldNode)
+	    oldNode.createRelationshipTo(newNode, RelationshipTypes.HISTORY);
 
-   
+    }
+
 }
