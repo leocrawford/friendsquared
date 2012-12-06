@@ -63,11 +63,16 @@ public class Neo4JJsonPersistenceServiceTest {
 	Neo4JJsonPersistenceService ps = createNewService();
 
 	ps.overwrite(jsonText);
-	ps.navigate("second").overwrite("new value");
+	ps.navigate("second").overwrite("\"new value\"");
 
-	String expectedJson = "{\"first\": 123, \"second\": \"new value\", 4, 5, 6, {\"id\": 123}], \"third\": 789, \"xid\": null}";
+	assertEquals(mapper.readTree(ps.toJsonString()),
+		mapper.readTree("{\"first\": 123, \"second\": \"new value\", \"third\": 789, \"xid\": null}"));
 
-	assertEquals(mapper.readTree(ps.toJsonString()), mapper.readTree(expectedJson));
+	ps.navigate("second").overwrite("[0,1,2]");
+
+	assertEquals(mapper.readTree(ps.toJsonString()),
+		mapper.readTree("{\"first\": 123, \"second\": [0,1,2], \"third\": 789, \"xid\": null}"));
+
     }
 
     private Neo4JJsonPersistenceService createNewService() throws IOException {

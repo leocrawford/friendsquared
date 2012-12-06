@@ -85,12 +85,12 @@ public class GraphNodeImpl implements Neo4JGraphNode {
 
     private List<History> history = null;
 
-    private static final String ts24Pat = "H:mm:ss yy-MM-dd";
-    private static SimpleDateFormat sdf = new SimpleDateFormat(ts24Pat);
+    private static final String DATE_FORMAT = "H:mm:ss.SSS yy-MM-dd";
+    private static SimpleDateFormat sdf = new SimpleDateFormat(DATE_FORMAT);
 
     @Override
     public List<History> getHistory() {
-
+	System.out.println("Called history on " + graphNode.getDatabaseNode().getId());
 	if (history == null) {
 	    history = new LinkedList<History>();
 	    history.add(new History() {
@@ -112,8 +112,9 @@ public class GraphNodeImpl implements Neo4JGraphNode {
 	    for (Relationship r : graphNode.getDatabaseNode().getRelationships(RelationshipTypes.HISTORY,
 		    Direction.OUTGOING)) {
 
-		final Neo4JGraphNode endNode = NodeTypes
-			.wrapAsGraphNode(r.getOtherNode(graphNode.getDatabaseNode()), r);
+		System.out.println("Found "+r+ " between "+r.getStartNode()+","+r.getEndNode());
+		
+		final Neo4JGraphNode endNode = NodeTypes.wrapAsGraphNode(r.getEndNode(), r);
 		history.addAll(endNode.getHistory());
 	    }
 	}
