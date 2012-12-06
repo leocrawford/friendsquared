@@ -39,7 +39,7 @@ public class MapGraphNode extends AbstractMap<String, Neo4JGraphNode> implements
 
     public MapGraphNode(Node node, Relationship incomingRelationship) {
 	this.node = node;
-	this.virtualSuperclass = new GraphNodeImpl(this,incomingRelationship);
+	this.virtualSuperclass = new GraphNodeImpl(this, incomingRelationship);
     }
 
     @Override
@@ -75,8 +75,8 @@ public class MapGraphNode extends AbstractMap<String, Neo4JGraphNode> implements
 		    chosenNode = endNode.getRelationships(Direction.OUTGOING, RelationshipTypes.INCOMING_VERSION)
 			    .iterator().next().getEndNode();
 		}
-		children.add(new AbstractMap.SimpleImmutableEntry<String, Neo4JGraphNode>((String) r.getProperty("name"),
-			NodeTypes.wrapAsGraphNode(chosenNode,r)));
+		children.add(new AbstractMap.SimpleImmutableEntry<String, Neo4JGraphNode>((String) r
+			.getProperty("name"), NodeTypes.wrapAsGraphNode(chosenNode, r)));
 	    }
 	}
     }
@@ -140,7 +140,7 @@ public class MapGraphNode extends AbstractMap<String, Neo4JGraphNode> implements
     public void overwrite(String values) throws IllegalJsonException, JsonPersistenceException {
 	virtualSuperclass.overwrite(values);
     }
-    
+
     @Override
     public List<History> getHistory() {
 	return virtualSuperclass.getHistory();
@@ -150,22 +150,26 @@ public class MapGraphNode extends AbstractMap<String, Neo4JGraphNode> implements
     public long getTimestamp() {
 	return virtualSuperclass.getTimestamp();
     }
-    
+
     @Override
     public void put(String key, String json) throws IllegalJsonException, JsonPersistenceException {
-	Transaction tx = node.getGraphDatabase().beginTx();
-	try {
-	    JsonNode values = new ObjectMapper().readTree(json);
-	    getStrategy().addElementToMap(new Context(tx, node.getGraphDatabase()), node, values,key);
-	    tx.success();
-	} catch (JsonProcessingException jpe) {
-	    tx.failure();
-	    throw new IllegalJsonException("The JSON string was badly formed: " + json, jpe);
-	} catch (IOException e) {
-	    tx.failure();
-	    throw new JsonPersistenceException("IOException whilst writing data to database", e);
-	} finally {
-	    tx.finish();
+	if (this.containsKey(key))
+	    this.get(key).overwrite(json);
+	else {
+	    Transaction tx = node.getGraphDatabase().beginTx();
+	    try {
+		JsonNode values = new ObjectMapper().readTree(json);
+		getStrategy().addElementToMap(new Context(tx, node.getGraphDatabase()), node, values, key);
+		tx.success();
+	    } catch (JsonProcessingException jpe) {
+		tx.failure();
+		throw new IllegalJsonException("The JSON string was badly formed: " + json, jpe);
+	    } catch (IOException e) {
+		tx.failure();
+		throw new JsonPersistenceException("IOException whilst writing data to database", e);
+	    } finally {
+		tx.finish();
+	    }
 	}
     }
 
@@ -173,7 +177,7 @@ public class MapGraphNode extends AbstractMap<String, Neo4JGraphNode> implements
     public void add(String json) throws JsonPersistenceException {
 	throw new JsonPersistenceException("It's not possible to add an array element to a map node. ");
     }
-    
+
     @Override
     public VersionStrategy getStrategy() {
 	return virtualSuperclass.getStrategy();

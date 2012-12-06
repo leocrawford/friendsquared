@@ -118,11 +118,20 @@ public class Neo4JJsonPersistenceService implements JsonPersistenceService, Neo4
     public void startWebService() {
 	srv = new WrappingNeoServerBootstrapper((AbstractGraphDatabase) graphDb);
 	srv.start();
-	System.out.println("Started server: "+srv.getServer().toString());
     }
 
     public void stopWebService() {
 	srv.stop();
+    }
+
+    public synchronized void startWebServiceAndWait() {
+	startWebService();
+	try {
+	    this.wait();
+	} catch (Exception e) {
+	    e.printStackTrace();
+	}
+
     }
 
     @Override
