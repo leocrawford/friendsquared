@@ -19,30 +19,18 @@ public class Neo4JJsonPersistenceServiceTest {
 
     @Test
     public void testFindFromRoot() throws IOException, JsonPersistenceException, IllegalJsonException {
-	File directory = Files.createTempDirectory("neo4j_test")
-		.toFile();
-	
-	System.out.println("Directory: "+directory);
-	
-	Neo4JJsonPersistenceService ps = new Neo4JJsonPersistenceService(directory);
-	
+	Neo4JJsonPersistenceService ps = createNewService();
+
 	ps.overwrite(jsonText);
 	System.out.println(ps.toJsonString());
 	ps.navigate("second").overwrite("\"blah blah\"");
 	System.out.println(ps.toJsonString());
-	ps.navigate("second").overwrite("\"blah 1\"");	
+	ps.navigate("second").overwrite("\"blah 1\"");
 	System.out.println(ps.toJsonString());
+	System.out.println(ps.getHistory());
 	System.out.println(ps.navigate("second").getHistory());
-	
-//	ps.startWebService();
-//	try {
-//	    Thread.sleep(1000 * 60 * 60);
-//	} catch (InterruptedException e) {
-//	    // TODO Auto-generated catch block
-//	    e.printStackTrace();
-//	}
-//	ps.stopWebService();
-//	
+
+	//
 	// ps.put(JsonPath.compile("second[0]"),
 	// ps.get(JsonPath.compile("second[4]")));
 	// System.out.println(ps.getRootJsonNode());
@@ -50,22 +38,40 @@ public class Neo4JJsonPersistenceServiceTest {
 	// System.out.println(ps.get(JsonPath.compile("$.second[0]")));
 	// System.out.println(ps.get(JsonPath.compile("second[4]")));
 	ps.close();
-	
+
+	// ps.startWebService();
+	// try {
+	// Thread.sleep(1000 * 60 * 60);
+	// } catch (InterruptedException e) {
+	// // TODO Auto-generated catch block
+	// e.printStackTrace();
+	// }
+	// ps.stopWebService();
+
     }
 
     @Test
-    public void testGetRootJsonNode() throws IOException, JsonPersistenceException, IllegalJsonException {
-	Neo4JJsonPersistenceService ps = new Neo4JJsonPersistenceService(Files.createTempDirectory("neo4j_test")
-		.toFile());
+    public void testBasicWriteFromRoot() throws IOException, JsonPersistenceException, IllegalJsonException {
+	Neo4JJsonPersistenceService ps = createNewService();
 
-	ps.overwrite(jsonText); // we have to
-							     // convert our
-							     // return value to
-							     // get rid of
-							     // spaces, etc. and
-	// ensure we do type comparison
-	System.out.println(ps.toJsonString());
+	ps.overwrite(jsonText);
 	assertEquals(mapper.readTree(ps.toJsonString()), mapper.readTree(jsonText));
+    }
+
+    @Test
+    public void testOverwriteOfNonRootMapNode() throws IOException, JsonPersistenceException, IllegalJsonException {
+	Neo4JJsonPersistenceService ps = createNewService();
+
+	ps.overwrite(jsonText);
+	ps.navigate("second").overwrite("new value");
+
+	String expectedJson = "{\"first\": 123, \"second\": \"new value\", 4, 5, 6, {\"id\": 123}], \"third\": 789, \"xid\": null}";
+
+	assertEquals(mapper.readTree(ps.toJsonString()), mapper.readTree(expectedJson));
+    }
+
+    private Neo4JJsonPersistenceService createNewService() throws IOException {
+	return new Neo4JJsonPersistenceService(Files.createTempDirectory("neo4j_test").toFile());
     }
 
 }

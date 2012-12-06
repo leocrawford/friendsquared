@@ -45,7 +45,7 @@ public class TimestampVersionStrategy extends VersionStrategyImpl {
     public void replaceRelationship(Relationship oldRelationship, Relationship newRelationship) {
 	addHistoryToNode(newRelationship.getEndNode(), oldRelationship.getEndNode());
 	addHistoryToNode(newRelationship.getStartNode(), oldRelationship.getStartNode());
-
+	this.getSuccessor().replaceRelationship(oldRelationship, newRelationship);
     }
 
     private void addHistoryToNode(Node newNode, Node oldNode) {

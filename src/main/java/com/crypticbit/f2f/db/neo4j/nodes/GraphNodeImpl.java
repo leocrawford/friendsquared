@@ -1,6 +1,8 @@
 package com.crypticbit.f2f.db.neo4j.nodes;
 
 import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -10,6 +12,7 @@ import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.Transaction;
 
+import com.crypticbit.f2f.db.GraphNode;
 import com.crypticbit.f2f.db.History;
 import com.crypticbit.f2f.db.IllegalJsonException;
 import com.crypticbit.f2f.db.JsonPersistenceException;
@@ -30,7 +33,7 @@ public class GraphNodeImpl implements Neo4JGraphNode {
 
     private Neo4JGraphNode graphNode;
     private Relationship incomingRelationship;
-    
+
     public GraphNodeImpl(Neo4JGraphNode graphNode, Relationship incomingRelationship) {
 	this.graphNode = graphNode;
 	this.incomingRelationship = incomingRelationship;
@@ -58,8 +61,7 @@ public class GraphNodeImpl implements Neo4JGraphNode {
     }
 
     public VersionStrategy getStrategy() {
-	return new StrategyChainFactory().createVersionStrategies(
-		TimestampVersionStrategy.class,
+	return new StrategyChainFactory().createVersionStrategies(TimestampVersionStrategy.class,
 		UnversionedVersionStrategy.class);
     }
 
@@ -83,10 +85,12 @@ public class GraphNodeImpl implements Neo4JGraphNode {
 
     private List<History> history = null;
 
+    private static final String ts24Pat = "H:mm:ss yy-MM-dd";
+    private static SimpleDateFormat sdf = new SimpleDateFormat(ts24Pat);
+
     @Override
     public List<History> getHistory() {
-	
-	
+
 	if (history == null) {
 	    history = new LinkedList<History>();
 	    history.add(new History() {
@@ -96,19 +100,20 @@ public class GraphNodeImpl implements Neo4JGraphNode {
 		    return graphNode.getTimestamp();
 		}
 
-		@Override
-		public String getDescription() {
-		    return "blah";
+		public String toString() {
+		    return sdf.format(new Date(getTimestamp()));
 		}
 
-		public String toString() {
-		    return getTimestamp() + ": " + getDescription();
+		@Override
+		public GraphNode getVersion() {
+		    return graphNode;
 		}
 	    });
 	    for (Relationship r : graphNode.getDatabaseNode().getRelationships(RelationshipTypes.HISTORY,
 		    Direction.OUTGOING)) {
-	
-		final Neo4JGraphNode endNode = NodeTypes.wrapAsGraphNode(r.getOtherNode(graphNode.getDatabaseNode()),r);
+
+		final Neo4JGraphNode endNode = NodeTypes
+			.wrapAsGraphNode(r.getOtherNode(graphNode.getDatabaseNode()), r);
 		history.addAll(endNode.getHistory());
 	    }
 	}
@@ -124,7 +129,7 @@ public class GraphNodeImpl implements Neo4JGraphNode {
     @Override
     public void put(String key, String json) throws IllegalJsonException, JsonPersistenceException {
 	throw new UnsupportedOperationException("put is to be provided locally");
-	
+
     }
 
     @Override
