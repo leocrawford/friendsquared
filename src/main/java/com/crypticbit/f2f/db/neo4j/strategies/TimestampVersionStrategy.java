@@ -19,11 +19,11 @@ public class TimestampVersionStrategy extends VersionStrategyImpl {
     //
     // }
 
-    // @Override
-    // public void addNodeToArray(Context context, Node parent, JsonNode json) {
-    // // TODO Auto-generated method stub
-    //
-    // }
+     @Override
+     public void addElementToArray(Context context, Node parent, JsonNode json) {
+	 getSuccessor().addElementToArray(context,getRoot().creatCopyOfNode(context, parent),json);
+    
+     }
 
     // @Override
     // public void addNodeToArray(Context context, Node parent, JsonNode json,
@@ -54,7 +54,6 @@ public class TimestampVersionStrategy extends VersionStrategyImpl {
     private void addHistoryToNode(Node newNode, Node oldNode) {
 	if (newNode.getId() != oldNode.getId()) {
 	    Relationship r = newNode.createRelationshipTo(oldNode, RelationshipTypes.HISTORY);
-	    System.out.println("Just created " + r + " between " + r.getStartNode() + "," + r.getEndNode());
 	}
 
     }

@@ -49,5 +49,9 @@ public abstract class VersionStrategyImpl implements VersionStrategy {
 	getSuccessor().replaceRelationship(oldRelationship, newRelationship);
     }
 
+    public Node creatCopyOfNode(Context context, Node parent) {
+	return getSuccessor().creatCopyOfNode(context, parent);
+    }
+
     
 }

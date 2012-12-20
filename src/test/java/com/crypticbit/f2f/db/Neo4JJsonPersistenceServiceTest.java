@@ -131,6 +131,21 @@ public class Neo4JJsonPersistenceServiceTest {
 	assertEquals(mapper.readTree("\"new value 2\""),
 		mapper.readTree(ps.getHistory().get(2).getVersion().toJsonString()));
     }
+    
+    @Test
+    public void getHistoryOfAdd() throws IOException, JsonPersistenceException, IllegalJsonException {
+	Neo4JJsonPersistenceService ps = createNewService();
+
+	ps.overwrite(jsonText);
+	
+	ps.navigate("second").add("\"new value 1\"");
+
+	assertEquals(2, ps.navigate("second").getHistory().size());
+	
+	ps.navigate("second").add("\"new value 2\"");
+	
+	assertEquals(3, ps.navigate("second").getHistory().size());
+    }
 
     @Test
     public void testNavigateWithWildcards() throws IOException, JsonPersistenceException, IllegalJsonException {
