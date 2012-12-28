@@ -10,6 +10,7 @@ import com.crypticbit.f2f.db.History;
 import com.crypticbit.f2f.db.IllegalJsonException;
 import com.crypticbit.f2f.db.JsonPersistenceException;
 import com.crypticbit.f2f.db.neo4j.Neo4JGraphNode;
+import com.crypticbit.f2f.db.neo4j.strategies.DatabaseOperations;
 import com.crypticbit.f2f.db.neo4j.strategies.VersionStrategy;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -31,8 +32,8 @@ public class ValueGraphNode extends ValueNode implements Neo4JGraphNode {
 	this.node = graphNode;
 	virtualSuperclass = new GraphNodeImpl(this,incomingRelationship);
 	try {
-	    if (graphNode.hasProperty("value")) {
-		this.delegate = OBJECT_MAPPER.readTree((String) graphNode.getProperty("value"));
+	    if (graphNode.hasProperty(DatabaseOperations.Properties.VALUE.name())) {
+		this.delegate = OBJECT_MAPPER.readTree((String) graphNode.getProperty(DatabaseOperations.Properties.VALUE.name()));
 	    } else {
 		this.delegate = OBJECT_MAPPER.readTree("null");
 	    }
@@ -120,7 +121,7 @@ public class ValueGraphNode extends ValueNode implements Neo4JGraphNode {
     }
 
     @Override
-    public VersionStrategy getStrategy() {
+    public DatabaseOperations getStrategy() {
 	return virtualSuperclass.getStrategy();
     }
     

@@ -18,6 +18,7 @@ import com.crypticbit.f2f.db.IllegalJsonException;
 import com.crypticbit.f2f.db.JsonPersistenceException;
 import com.crypticbit.f2f.db.neo4j.Neo4JGraphNode;
 import com.crypticbit.f2f.db.neo4j.strategies.Context;
+import com.crypticbit.f2f.db.neo4j.strategies.DatabaseOperations;
 import com.crypticbit.f2f.db.neo4j.strategies.StrategyChainFactory;
 import com.crypticbit.f2f.db.neo4j.strategies.TimestampVersionStrategy;
 import com.crypticbit.f2f.db.neo4j.strategies.UnversionedVersionStrategy;
@@ -44,25 +45,30 @@ public class GraphNodeImpl implements Neo4JGraphNode {
     }
 
     public void overwrite(String json) throws IllegalJsonException, JsonPersistenceException {
-	Transaction tx = getDatabaseService().beginTx();
+	DatabaseOperations db = getStrategy();
+	db.beginTransaction();
 	try {
 	    JsonNode values = new ObjectMapper().readTree(json);
-	    getStrategy().replaceNode(new Context(tx, getDatabaseService()), incomingRelationship, values);
-	    tx.success();
+	    getStrategy().overwriteElement(incomingRelationship, values);
+	    db.successTransaction();
 	} catch (JsonProcessingException jpe) {
-	    tx.failure();
+	    db.failureTransaction();
 	    throw new IllegalJsonException("The JSON string was badly formed: " + json, jpe);
 	} catch (IOException e) {
-	    tx.failure();
+	    db.failureTransaction();
 	    throw new JsonPersistenceException("IOException whilst writing data to database", e);
 	} finally {
-	    tx.finish();
+	    db.finishTransaction();
 	}
+
+    }
+    
+    public Relationship getIncomingRelationship() {
+	return incomingRelationship;
     }
 
-    public VersionStrategy getStrategy() {
-	return new StrategyChainFactory().createVersionStrategies(TimestampVersionStrategy.class,
-		UnversionedVersionStrategy.class);
+    public DatabaseOperations getStrategy() {
+	return new DatabaseOperations(getDatabaseService());
     }
 
     private GraphDatabaseService getDatabaseService() {

@@ -14,8 +14,10 @@ import com.crypticbit.f2f.db.History;
 import com.crypticbit.f2f.db.IllegalJsonException;
 import com.crypticbit.f2f.db.JsonPersistenceException;
 import com.crypticbit.f2f.db.JsonPersistenceService;
+import com.crypticbit.f2f.db.neo4j.strategies.DatabaseOperations;
 import com.crypticbit.f2f.db.neo4j.strategies.VersionStrategy;
 import com.crypticbit.f2f.db.neo4j.types.NodeTypes;
+import com.crypticbit.f2f.db.neo4j.types.RelationshipTypes;
 import com.fasterxml.jackson.databind.JsonNode;
 
 /**
@@ -26,6 +28,8 @@ import com.fasterxml.jackson.databind.JsonNode;
  * 
  */
 public class Neo4JJsonPersistenceService implements JsonPersistenceService, Neo4JGraphNode {
+
+    private static final String ROOT = "ROOT";
 
     /**
      * Registers a shutdown hook for the Neo4j instance so that it shuts down
@@ -78,7 +82,7 @@ public class Neo4JJsonPersistenceService implements JsonPersistenceService, Neo4
     private Neo4JGraphNode getRootGraphNode() {
 	// this extra step (root of the root) is so we can readily change it
 	// later, and normal logic keeps working
-	return (Neo4JGraphNode) getReferenceGraphNode().navigate("root");
+	return (Neo4JGraphNode) getReferenceGraphNode().navigate(ROOT);
     }
 
     /**
@@ -102,7 +106,10 @@ public class Neo4JJsonPersistenceService implements JsonPersistenceService, Neo4
 	referenceNode = graphDb.getReferenceNode();
 	Transaction tx = graphDb.beginTx();
 	try {
-	    referenceNode.setProperty("type", NodeTypes.MAP.toString());
+	    referenceNode.setProperty(DatabaseOperations.Properties.TYPE.name(), NodeTypes.MAP.toString());
+	    referenceNode.createRelationshipTo(graphDb.createNode(), RelationshipTypes.MAP).setProperty(
+		    DatabaseOperations.Properties.KEY.name(), ROOT);
+
 	    tx.success();
 	} catch (Exception e) {
 	    e.printStackTrace();
@@ -141,7 +148,7 @@ public class Neo4JJsonPersistenceService implements JsonPersistenceService, Neo4
 
     @Override
     public void overwrite(String json) throws IllegalJsonException, JsonPersistenceException {
-	getReferenceGraphNode().put("root", json);
+	getRootGraphNode().overwrite(json);
 
     }
 
@@ -178,7 +185,7 @@ public class Neo4JJsonPersistenceService implements JsonPersistenceService, Neo4
     }
 
     @Override
-    public VersionStrategy getStrategy() {
+    public DatabaseOperations getStrategy() {
 	return getRootGraphNode().getStrategy();
     }
 

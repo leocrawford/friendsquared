@@ -22,6 +22,11 @@ public class Neo4JJsonPersistenceServiceTest {
 	Neo4JJsonPersistenceService ps = createNewService();
 
 	ps.overwrite(jsonText);
+	
+	System.out.println(ps.toJsonString());
+	
+//	ps.startWebServiceAndWait();
+	
 	assertEquals(mapper.readTree(jsonText), mapper.readTree(ps.toJsonString()));
     }
 

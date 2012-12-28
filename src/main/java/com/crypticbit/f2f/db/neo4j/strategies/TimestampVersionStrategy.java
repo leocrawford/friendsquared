@@ -1,7 +1,9 @@
 package com.crypticbit.f2f.db.neo4j.strategies;
 
+import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
+import org.neo4j.graphdb.RelationshipType;
 
 import com.crypticbit.f2f.db.neo4j.types.RelationshipTypes;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -19,11 +21,15 @@ public class TimestampVersionStrategy extends VersionStrategyImpl {
     //
     // }
 
-     @Override
-     public void addElementToArray(Context context, Node parent, JsonNode json) {
-	 getSuccessor().addElementToArray(context,getRoot().creatCopyOfNode(context, parent),json);
-    
-     }
+    @Override
+    public void addElementToArray(Context context, Node parent, JsonNode json) {
+	Node newParentNode = getRoot().creatCopyOfNode(context, parent);
+	getSuccessor().addElementToArray(context, newParentNode, json);
+
+	// FIXME - copy and paste
+	
+	
+    }
 
     // @Override
     // public void addNodeToArray(Context context, Node parent, JsonNode json,
@@ -37,6 +43,16 @@ public class TimestampVersionStrategy extends VersionStrategyImpl {
 	Node successorResult = getSuccessor().createNewNode(context, jsonNode);
 	successorResult.setProperty("timestamp", System.currentTimeMillis());
 	return successorResult;
+    }
+
+    public Node creatCopyOfNode(Context context, Node node) {
+	Node newNode = context.getGraphDb().createNode();
+	for (Relationship oldRelationship : node.getRelationships(Direction.OUTGOING, RelationshipTypes.ARRAY, RelationshipTypes.MAP)) {
+	    Relationship newRelationship = newNode.createRelationshipTo(oldRelationship.getEndNode(), oldRelationship.getType());
+//	    UnversionedVersionStrategy.cloneRelationshipProperties(oldRelationship, newRelationship);
+	}
+//	UnversionedVersionStrategy.cloneNodeProperties(node,newNode);
+	return newNode;
     }
 
     // @Override

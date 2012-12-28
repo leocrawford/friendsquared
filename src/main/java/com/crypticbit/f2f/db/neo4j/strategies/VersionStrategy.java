@@ -11,7 +11,14 @@ public interface VersionStrategy {
     public void addElementToMap(Context context, Node parent, JsonNode json, String key) ;
     public void addElementToArray(Context context, Node parent, JsonNode json);
     public void addElementToArray(Context context, Node parent, JsonNode json, int index);
+    
+    
+    
     public Node createNewNode(Context context, JsonNode jsonNode);
+
+    
+    
+    
     public Relationship replaceNode(Context context, Relationship oldRelationship, JsonNode values);
     public void replaceRelationship(Relationship oldRelationship, Relationship newRelationship);
 }

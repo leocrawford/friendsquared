@@ -7,6 +7,7 @@ import com.crypticbit.f2f.db.neo4j.Neo4JGraphNode;
 import com.crypticbit.f2f.db.neo4j.nodes.ArrayGraphNode;
 import com.crypticbit.f2f.db.neo4j.nodes.MapGraphNode;
 import com.crypticbit.f2f.db.neo4j.nodes.ValueGraphNode;
+import com.crypticbit.f2f.db.neo4j.strategies.DatabaseOperations;
 
 public enum NodeTypes {
     ARRAY() {
@@ -29,8 +30,8 @@ public enum NodeTypes {
 	}
     };
     public static Neo4JGraphNode wrapAsGraphNode(Node graphNode, Relationship incomingRelationship) {
-	if (graphNode.hasProperty("type"))
-	    return valueOf((String) graphNode.getProperty("type"))._wrapAsGraphNode(graphNode,incomingRelationship);
+	if (graphNode.hasProperty(DatabaseOperations.Properties.TYPE.name()))
+	    return valueOf((String) graphNode.getProperty(DatabaseOperations.Properties.TYPE.name()))._wrapAsGraphNode(graphNode,incomingRelationship);
 	else
 	    // Let's do our best to make it a value node - especially for the
 	    // default root element

@@ -19,6 +19,7 @@ import com.crypticbit.f2f.db.IllegalJsonException;
 import com.crypticbit.f2f.db.JsonPersistenceException;
 import com.crypticbit.f2f.db.neo4j.Neo4JGraphNode;
 import com.crypticbit.f2f.db.neo4j.strategies.Context;
+import com.crypticbit.f2f.db.neo4j.strategies.DatabaseOperations;
 import com.crypticbit.f2f.db.neo4j.strategies.VersionStrategy;
 import com.crypticbit.f2f.db.neo4j.types.NodeTypes;
 import com.crypticbit.f2f.db.neo4j.types.RelationshipTypes;
@@ -76,7 +77,7 @@ public class MapGraphNode extends AbstractMap<String, Neo4JGraphNode> implements
 			    .iterator().next().getEndNode();
 		}
 		children.add(new AbstractMap.SimpleImmutableEntry<String, Neo4JGraphNode>((String) r
-			.getProperty("name"), NodeTypes.wrapAsGraphNode(chosenNode, r)));
+			.getProperty(DatabaseOperations.Properties.KEY.name()), NodeTypes.wrapAsGraphNode(chosenNode, r)));
 	    }
 	}
     }
@@ -156,19 +157,22 @@ public class MapGraphNode extends AbstractMap<String, Neo4JGraphNode> implements
 	if (this.containsKey(key))
 	    this.get(key).overwrite(json);
 	else {
-	    Transaction tx = node.getGraphDatabase().beginTx();
+
+	    DatabaseOperations db = getStrategy();
+	    db.beginTransaction();
 	    try {
 		JsonNode values = new ObjectMapper().readTree(json);
-		getStrategy().addElementToMap(new Context(tx, node.getGraphDatabase()), node, values, key);
-		tx.success();
+		getStrategy().addElementToMap(virtualSuperclass.getIncomingRelationship(), key, values);
+
+		db.successTransaction();
 	    } catch (JsonProcessingException jpe) {
-		tx.failure();
+		db.failureTransaction();
 		throw new IllegalJsonException("The JSON string was badly formed: " + json, jpe);
 	    } catch (IOException e) {
-		tx.failure();
+		db.failureTransaction();
 		throw new JsonPersistenceException("IOException whilst writing data to database", e);
 	    } finally {
-		tx.finish();
+		db.finishTransaction();
 	    }
 	}
     }
@@ -179,7 +183,7 @@ public class MapGraphNode extends AbstractMap<String, Neo4JGraphNode> implements
     }
 
     @Override
-    public VersionStrategy getStrategy() {
+    public DatabaseOperations getStrategy() {
 	return virtualSuperclass.getStrategy();
     }
 }

@@ -16,7 +16,7 @@ import com.crypticbit.f2f.db.IllegalJsonException;
 import com.crypticbit.f2f.db.JsonPersistenceException;
 import com.crypticbit.f2f.db.neo4j.Neo4JGraphNode;
 import com.crypticbit.f2f.db.neo4j.strategies.Context;
-import com.crypticbit.f2f.db.neo4j.strategies.VersionStrategy;
+import com.crypticbit.f2f.db.neo4j.strategies.DatabaseOperations;
 import com.crypticbit.f2f.db.neo4j.types.NodeTypes;
 import com.crypticbit.f2f.db.neo4j.types.RelationshipTypes;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -70,7 +70,7 @@ public class ArrayGraphNode extends AbstractList<Neo4JGraphNode> implements Neo4
 	if (children == null) {
 	    Map<Integer, Neo4JGraphNode> map = new TreeMap<Integer, Neo4JGraphNode>();
 	    for (Relationship r : node.getRelationships(RelationshipTypes.ARRAY, Direction.OUTGOING)) {
-		map.put((Integer) r.getProperty("index"), NodeTypes.wrapAsGraphNode(r.getEndNode(),r));
+		map.put((Integer) r.getProperty(DatabaseOperations.Properties.INDEX.name()), NodeTypes.wrapAsGraphNode(r.getEndNode(),r));
 	    }
 	    children = map.values().toArray(new Neo4JGraphNode[map.size()]);
 	}
@@ -137,25 +137,26 @@ public class ArrayGraphNode extends AbstractList<Neo4JGraphNode> implements Neo4
 
     @Override
     public void add(String json) throws IllegalJsonException, JsonPersistenceException {
-	Transaction tx = node.getGraphDatabase().beginTx();
+	DatabaseOperations db = getStrategy();
+	db.beginTransaction();
 	try {
 	    JsonNode values = new ObjectMapper().readTree(json);
-	    getStrategy().addElementToArray(new Context(tx, node.getGraphDatabase()), node, values);
-	    tx.success();
+	    getStrategy().addElementToArray(virtualSuperclass.getIncomingRelationship(), values);
+	    db.successTransaction();
 	} catch (JsonProcessingException jpe) {
-	    tx.failure();
+	    db.failureTransaction();
 	    throw new IllegalJsonException("The JSON string was badly formed: " + json, jpe);
 	} catch (IOException e) {
-	    tx.failure();
+	    db.failureTransaction();
 	    throw new JsonPersistenceException("IOException whilst writing data to database", e);
 	} finally {
-	    tx.finish();
+	    db.finishTransaction();
 	}
 
     }
     
     @Override
-    public VersionStrategy getStrategy() {
+    public DatabaseOperations getStrategy() {
 	return virtualSuperclass.getStrategy();
     }
 
