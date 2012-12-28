@@ -10,19 +10,13 @@ import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
-import org.neo4j.graphdb.Transaction;
 
 import com.crypticbit.f2f.db.GraphNode;
 import com.crypticbit.f2f.db.History;
 import com.crypticbit.f2f.db.IllegalJsonException;
 import com.crypticbit.f2f.db.JsonPersistenceException;
 import com.crypticbit.f2f.db.neo4j.Neo4JGraphNode;
-import com.crypticbit.f2f.db.neo4j.strategies.Context;
-import com.crypticbit.f2f.db.neo4j.strategies.DatabaseOperations;
-import com.crypticbit.f2f.db.neo4j.strategies.StrategyChainFactory;
-import com.crypticbit.f2f.db.neo4j.strategies.TimestampVersionStrategy;
-import com.crypticbit.f2f.db.neo4j.strategies.UnversionedVersionStrategy;
-import com.crypticbit.f2f.db.neo4j.strategies.VersionStrategy;
+import com.crypticbit.f2f.db.neo4j.strategies.DatabaseAbstractionLayer;
 import com.crypticbit.f2f.db.neo4j.types.NodeTypes;
 import com.crypticbit.f2f.db.neo4j.types.RelationshipTypes;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -45,11 +39,11 @@ public class GraphNodeImpl implements Neo4JGraphNode {
     }
 
     public void overwrite(String json) throws IllegalJsonException, JsonPersistenceException {
-	DatabaseOperations db = getStrategy();
+	DatabaseAbstractionLayer db = getStrategy();
 	db.beginTransaction();
 	try {
 	    JsonNode values = new ObjectMapper().readTree(json);
-	    getStrategy().overwriteElement(incomingRelationship, values);
+	    db.overwriteElement(incomingRelationship, values);
 	    db.successTransaction();
 	} catch (JsonProcessingException jpe) {
 	    db.failureTransaction();
@@ -67,8 +61,8 @@ public class GraphNodeImpl implements Neo4JGraphNode {
 	return incomingRelationship;
     }
 
-    public DatabaseOperations getStrategy() {
-	return new DatabaseOperations(getDatabaseService());
+    public DatabaseAbstractionLayer getStrategy() {
+	return new DatabaseAbstractionLayer(getDatabaseService());
     }
 
     private GraphDatabaseService getDatabaseService() {

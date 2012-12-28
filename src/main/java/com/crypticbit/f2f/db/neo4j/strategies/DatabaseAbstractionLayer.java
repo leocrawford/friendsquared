@@ -9,23 +9,20 @@ import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.Transaction;
 
 import com.crypticbit.f2f.db.neo4j.types.NodeTypes;
+import com.crypticbit.f2f.db.neo4j.types.RelationshipParameters;
 import com.crypticbit.f2f.db.neo4j.types.RelationshipTypes;
 import com.fasterxml.jackson.databind.JsonNode;
 
-public class DatabaseOperations implements ADO {
+public class DatabaseAbstractionLayer implements FundementalDatabaseOperations {
 
-    private ADO actualDatabase = this;
+    private FundementalDatabaseOperations actualDatabase = this;
     private GraphDatabaseService grapgDb;
     private Transaction tx;
 
-    public DatabaseOperations(GraphDatabaseService grapgDb) {
+    public DatabaseAbstractionLayer(GraphDatabaseService grapgDb) {
 	this.grapgDb = grapgDb;
     }
 
-    public enum Properties {
-	KEY, INDEX, TYPE, VALUE
-    };
-    
     public void beginTransaction() {
 	tx = grapgDb.beginTx();
     }
@@ -55,7 +52,7 @@ public class DatabaseOperations implements ADO {
     Node addElementToMap(Node node, final String key, JsonNode json) {
 	Node newNode = actualDatabase.createNewNode();
 	populateWithJson(newNode, json);
-	node.createRelationshipTo(newNode, RelationshipTypes.MAP).setProperty(Properties.KEY.name(), key);
+	node.createRelationshipTo(newNode, RelationshipTypes.MAP).setProperty(RelationshipParameters.KEY.name(), key);
 	return newNode;
     }
 
@@ -72,20 +69,20 @@ public class DatabaseOperations implements ADO {
     Node addElementToArray(Node node, int index, JsonNode json) {
 	Node newNode = actualDatabase.createNewNode();
 	populateWithJson(newNode, json);
-	node.createRelationshipTo(newNode, RelationshipTypes.ARRAY).setProperty(Properties.INDEX.name(), index);
+	node.createRelationshipTo(newNode, RelationshipTypes.ARRAY).setProperty(RelationshipParameters.INDEX.name(), index);
 	return newNode;
     }
 
     private void populateWithJson(Node graphNode, JsonNode jsonNode) {
 	if (jsonNode.isContainerNode()) {
 	    if (jsonNode.isArray()) {
-		graphNode.setProperty(Properties.TYPE.name(), NodeTypes.ARRAY.toString());
+		graphNode.setProperty(RelationshipParameters.TYPE.name(), NodeTypes.ARRAY.toString());
 		for (int loop = 0; loop < jsonNode.size(); loop++) {
 		    addElementToArray(graphNode, loop, jsonNode.get(loop));
 		}
 	    }
 	    if (jsonNode.isObject()) {
-		graphNode.setProperty(Properties.TYPE.name(), NodeTypes.MAP.toString());
+		graphNode.setProperty(RelationshipParameters.TYPE.name(), NodeTypes.MAP.toString());
 		Iterator<String> fieldNamesIterator = jsonNode.fieldNames();
 		while (fieldNamesIterator.hasNext()) {
 		    String f = fieldNamesIterator.next();
@@ -93,8 +90,8 @@ public class DatabaseOperations implements ADO {
 		}
 	    }
 	} else {
-	    graphNode.setProperty(Properties.TYPE.name(), NodeTypes.VALUE.toString());
-	    graphNode.setProperty(Properties.VALUE.name(), jsonNode.toString());
+	    graphNode.setProperty(RelationshipParameters.TYPE.name(), NodeTypes.VALUE.toString());
+	    graphNode.setProperty(RelationshipParameters.VALUE.name(), jsonNode.toString());
 	}
     }
 
@@ -105,7 +102,7 @@ public class DatabaseOperations implements ADO {
 	    public void updateElement(Node node) {
 		for (Relationship relationshipToNodeToDelete : node.getRelationships(Direction.OUTGOING,
 			RelationshipTypes.MAP))
-		    if (relationshipToNodeToDelete.getProperty(Properties.KEY.name()).equals(key))
+		    if (relationshipToNodeToDelete.getProperty(RelationshipParameters.KEY.name()).equals(key))
 			actualDatabase.delete(relationshipToNodeToDelete);
 	    }
 	});
@@ -118,7 +115,7 @@ public class DatabaseOperations implements ADO {
 	    public void updateElement(Node node) {
 		for (Relationship relationshipToNodeToDelete : node.getRelationships(Direction.OUTGOING,
 			RelationshipTypes.ARRAY))
-		    if (relationshipToNodeToDelete.getProperty(Properties.INDEX.name()).equals(index))
+		    if (relationshipToNodeToDelete.getProperty(RelationshipParameters.INDEX.name()).equals(index))
 			actualDatabase.delete(relationshipToNodeToDelete);
 	    }
 	});
@@ -143,8 +140,8 @@ public class DatabaseOperations implements ADO {
     private int findNextUnusedIndex(Node parent) {
 	int max = 0;
 	for (Relationship a : parent.getRelationships(Direction.OUTGOING, RelationshipTypes.ARRAY)) {
-	    if ((int) a.getProperty(Properties.INDEX.name()) > max)
-		max = (int) a.getProperty(Properties.INDEX.name());
+	    if ((int) a.getProperty(RelationshipParameters.INDEX.name()) > max)
+		max = (int) a.getProperty(RelationshipParameters.INDEX.name());
 	}
 	return max + 1;
     }
@@ -160,13 +157,13 @@ public class DatabaseOperations implements ADO {
     public void update(Relationship relationshipToParent, boolean removeEverything, Operation o) {
 	if (removeEverything) {
 	    removeRelationships(relationshipToParent.getEndNode(), RelationshipTypes.ARRAY, RelationshipTypes.MAP);
-	    removeProperties(relationshipToParent.getEndNode(), Properties.values());
+	    removeProperties(relationshipToParent.getEndNode(), RelationshipParameters.values());
 	}
 	o.updateElement(relationshipToParent.getEndNode());
     }
 
-    private void removeProperties(Node node, Properties[] values) {
-	for (Properties key : values) {
+    private void removeProperties(Node node, RelationshipParameters[] values) {
+	for (RelationshipParameters key : values) {
 	    node.removeProperty(key.name());
 	}
 
@@ -190,20 +187,5 @@ public class DatabaseOperations implements ADO {
 	Node nodeAtOtherEnd = relationshipToNodeToDelete.getEndNode();
 	relationshipToNodeToDelete.delete();
 	nodeAtOtherEnd.delete();
-    }
-}
-
-interface ADO {
-
-    public Node createNewNode();
-
-    void update(Relationship relationshipToParent, boolean removeEverything, Operation o);
-
-    Node read(Relationship r);
-
-    void delete(Relationship relationshipToNodeToDelete);
-
-    public interface Operation {
-	void updateElement(Node node);
     }
 }

@@ -14,9 +14,9 @@ import com.crypticbit.f2f.db.History;
 import com.crypticbit.f2f.db.IllegalJsonException;
 import com.crypticbit.f2f.db.JsonPersistenceException;
 import com.crypticbit.f2f.db.JsonPersistenceService;
-import com.crypticbit.f2f.db.neo4j.strategies.DatabaseOperations;
-import com.crypticbit.f2f.db.neo4j.strategies.VersionStrategy;
+import com.crypticbit.f2f.db.neo4j.strategies.DatabaseAbstractionLayer;
 import com.crypticbit.f2f.db.neo4j.types.NodeTypes;
+import com.crypticbit.f2f.db.neo4j.types.RelationshipParameters;
 import com.crypticbit.f2f.db.neo4j.types.RelationshipTypes;
 import com.fasterxml.jackson.databind.JsonNode;
 
@@ -106,9 +106,9 @@ public class Neo4JJsonPersistenceService implements JsonPersistenceService, Neo4
 	referenceNode = graphDb.getReferenceNode();
 	Transaction tx = graphDb.beginTx();
 	try {
-	    referenceNode.setProperty(DatabaseOperations.Properties.TYPE.name(), NodeTypes.MAP.toString());
+	    referenceNode.setProperty(RelationshipParameters.TYPE.name(), NodeTypes.MAP.toString());
 	    referenceNode.createRelationshipTo(graphDb.createNode(), RelationshipTypes.MAP).setProperty(
-		    DatabaseOperations.Properties.KEY.name(), ROOT);
+		    RelationshipParameters.KEY.name(), ROOT);
 
 	    tx.success();
 	} catch (Exception e) {
@@ -185,7 +185,7 @@ public class Neo4JJsonPersistenceService implements JsonPersistenceService, Neo4
     }
 
     @Override
-    public DatabaseOperations getStrategy() {
+    public DatabaseAbstractionLayer getStrategy() {
 	return getRootGraphNode().getStrategy();
     }
 

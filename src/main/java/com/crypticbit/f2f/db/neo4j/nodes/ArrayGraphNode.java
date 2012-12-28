@@ -9,15 +9,14 @@ import java.util.TreeMap;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
-import org.neo4j.graphdb.Transaction;
 
 import com.crypticbit.f2f.db.History;
 import com.crypticbit.f2f.db.IllegalJsonException;
 import com.crypticbit.f2f.db.JsonPersistenceException;
 import com.crypticbit.f2f.db.neo4j.Neo4JGraphNode;
-import com.crypticbit.f2f.db.neo4j.strategies.Context;
-import com.crypticbit.f2f.db.neo4j.strategies.DatabaseOperations;
+import com.crypticbit.f2f.db.neo4j.strategies.DatabaseAbstractionLayer;
 import com.crypticbit.f2f.db.neo4j.types.NodeTypes;
+import com.crypticbit.f2f.db.neo4j.types.RelationshipParameters;
 import com.crypticbit.f2f.db.neo4j.types.RelationshipTypes;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -70,7 +69,7 @@ public class ArrayGraphNode extends AbstractList<Neo4JGraphNode> implements Neo4
 	if (children == null) {
 	    Map<Integer, Neo4JGraphNode> map = new TreeMap<Integer, Neo4JGraphNode>();
 	    for (Relationship r : node.getRelationships(RelationshipTypes.ARRAY, Direction.OUTGOING)) {
-		map.put((Integer) r.getProperty(DatabaseOperations.Properties.INDEX.name()), NodeTypes.wrapAsGraphNode(r.getEndNode(),r));
+		map.put((Integer) r.getProperty(RelationshipParameters.INDEX.name()), NodeTypes.wrapAsGraphNode(r.getEndNode(),r));
 	    }
 	    children = map.values().toArray(new Neo4JGraphNode[map.size()]);
 	}
@@ -137,11 +136,11 @@ public class ArrayGraphNode extends AbstractList<Neo4JGraphNode> implements Neo4
 
     @Override
     public void add(String json) throws IllegalJsonException, JsonPersistenceException {
-	DatabaseOperations db = getStrategy();
+	DatabaseAbstractionLayer db = getStrategy();
 	db.beginTransaction();
 	try {
 	    JsonNode values = new ObjectMapper().readTree(json);
-	    getStrategy().addElementToArray(virtualSuperclass.getIncomingRelationship(), values);
+	    db.addElementToArray(virtualSuperclass.getIncomingRelationship(), values);
 	    db.successTransaction();
 	} catch (JsonProcessingException jpe) {
 	    db.failureTransaction();
@@ -156,7 +155,7 @@ public class ArrayGraphNode extends AbstractList<Neo4JGraphNode> implements Neo4
     }
     
     @Override
-    public DatabaseOperations getStrategy() {
+    public DatabaseAbstractionLayer getStrategy() {
 	return virtualSuperclass.getStrategy();
     }
 
