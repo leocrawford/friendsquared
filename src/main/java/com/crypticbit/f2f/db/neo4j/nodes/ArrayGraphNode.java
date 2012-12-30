@@ -16,7 +16,7 @@ import com.crypticbit.f2f.db.JsonPersistenceException;
 import com.crypticbit.f2f.db.neo4j.Neo4JGraphNode;
 import com.crypticbit.f2f.db.neo4j.strategies.FundementalDatabaseOperations;
 import com.crypticbit.f2f.db.neo4j.strategies.FundementalDatabaseOperations.UpdateOperation;
-import com.crypticbit.f2f.db.neo4j.strategies.Neo4JSimpleFdoAdapter;
+import com.crypticbit.f2f.db.neo4j.strategies.SimpleFdoAdapter;
 import com.crypticbit.f2f.db.neo4j.types.NodeTypes;
 import com.crypticbit.f2f.db.neo4j.types.RelationshipParameters;
 import com.crypticbit.f2f.db.neo4j.types.RelationshipTypes;
@@ -147,7 +147,7 @@ public class ArrayGraphNode extends AbstractList<Neo4JGraphNode> implements Neo4
 	    final JsonNode values = new ObjectMapper().readTree(json);
 	    db.update(virtualSuperclass.getIncomingRelationship(), false, new UpdateOperation() {
 		@Override
-		public void updateElement(Neo4JSimpleFdoAdapter dal, Node node) {
+		public void updateElement(SimpleFdoAdapter dal, Node node) {
 		    addElementToArray(dal, node, findNextUnusedIndex(node), values);
 		}
 	    });
@@ -162,7 +162,7 @@ public class ArrayGraphNode extends AbstractList<Neo4JGraphNode> implements Neo4
 
     }
 
-    static Node addElementToArray(Neo4JSimpleFdoAdapter dal, Node node, int index, JsonNode json) {
+    static Node addElementToArray(SimpleFdoAdapter dal, Node node, int index, JsonNode json) {
 	Node newNode = dal.createNewNode();
 	GraphNodeImpl.populateWithJson(dal, newNode, json);
 	node.createRelationshipTo(newNode, RelationshipTypes.ARRAY).setProperty(RelationshipParameters.INDEX.name(),
@@ -175,7 +175,7 @@ public class ArrayGraphNode extends AbstractList<Neo4JGraphNode> implements Neo4
 	FundementalDatabaseOperations db = getStrategy();
 	db.update(relationshipToParent, false, new UpdateOperation() {
 	    @Override
-	    public void updateElement(Neo4JSimpleFdoAdapter dal, Node node) {
+	    public void updateElement(SimpleFdoAdapter dal, Node node) {
 		for (Relationship relationshipToNodeToDelete : node.getRelationships(Direction.OUTGOING,
 			RelationshipTypes.ARRAY))
 		    if (relationshipToNodeToDelete.getProperty(RelationshipParameters.INDEX.name()).equals(index))

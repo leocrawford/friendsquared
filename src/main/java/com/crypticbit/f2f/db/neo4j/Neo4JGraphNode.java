@@ -4,7 +4,7 @@ import org.neo4j.graphdb.Node;
 
 import com.crypticbit.f2f.db.HistoryGraphNode;
 import com.crypticbit.f2f.db.neo4j.strategies.FundementalDatabaseOperations;
-import com.crypticbit.f2f.db.neo4j.strategies.Neo4JSimpleFdoAdapter;
+import com.crypticbit.f2f.db.neo4j.strategies.SimpleFdoAdapter;
 
 public interface Neo4JGraphNode extends HistoryGraphNode {
 

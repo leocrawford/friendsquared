@@ -19,7 +19,7 @@ import com.crypticbit.f2f.db.JsonPersistenceException;
 import com.crypticbit.f2f.db.neo4j.Neo4JGraphNode;
 import com.crypticbit.f2f.db.neo4j.strategies.FundementalDatabaseOperations;
 import com.crypticbit.f2f.db.neo4j.strategies.FundementalDatabaseOperations.UpdateOperation;
-import com.crypticbit.f2f.db.neo4j.strategies.Neo4JSimpleFdoAdapter;
+import com.crypticbit.f2f.db.neo4j.strategies.SimpleFdoAdapter;
 import com.crypticbit.f2f.db.neo4j.types.NodeTypes;
 import com.crypticbit.f2f.db.neo4j.types.RelationshipParameters;
 import com.crypticbit.f2f.db.neo4j.types.RelationshipTypes;
@@ -163,7 +163,7 @@ public class MapGraphNode extends AbstractMap<String, Neo4JGraphNode> implements
 		// this is a create, and an update (on the parent)
 		db.update(virtualSuperclass.getIncomingRelationship(), false, new UpdateOperation() {
 		    @Override
-		    public void updateElement(Neo4JSimpleFdoAdapter dal, Node node) {
+		    public void updateElement(SimpleFdoAdapter dal, Node node) {
 			addElementToMap(dal, node, key, values);
 		    }
 		});
@@ -178,7 +178,7 @@ public class MapGraphNode extends AbstractMap<String, Neo4JGraphNode> implements
 	}
     }
 
-    static Node addElementToMap(Neo4JSimpleFdoAdapter dal, Node node, final String key, JsonNode json) {
+    static Node addElementToMap(SimpleFdoAdapter dal, Node node, final String key, JsonNode json) {
 	Node newNode = dal.createNewNode();
 	GraphNodeImpl.populateWithJson(dal, newNode, json);
 	node.createRelationshipTo(newNode, RelationshipTypes.MAP).setProperty(RelationshipParameters.KEY.name(), key);
@@ -190,7 +190,7 @@ public class MapGraphNode extends AbstractMap<String, Neo4JGraphNode> implements
 	FundementalDatabaseOperations db = getStrategy();
 	db.update(relationshipToParent, false, new UpdateOperation() {
 	    @Override
-	    public void updateElement(Neo4JSimpleFdoAdapter dal, Node node) {
+	    public void updateElement(SimpleFdoAdapter dal, Node node) {
 		for (Relationship relationshipToNodeToDelete : node.getRelationships(Direction.OUTGOING,
 			RelationshipTypes.MAP))
 		    if (relationshipToNodeToDelete.getProperty(RelationshipParameters.KEY.name()).equals(key))

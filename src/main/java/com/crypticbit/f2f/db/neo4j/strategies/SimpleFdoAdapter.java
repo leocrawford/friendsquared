@@ -9,12 +9,12 @@ import org.neo4j.graphdb.Transaction;
 import com.crypticbit.f2f.db.neo4j.types.RelationshipParameters;
 import com.crypticbit.f2f.db.neo4j.types.RelationshipTypes;
 
-public class Neo4JSimpleFdoAdapter implements FundementalDatabaseOperations {
+public class SimpleFdoAdapter implements FundementalDatabaseOperations {
 
     private GraphDatabaseService graphDb;
     private Transaction tx;
 
-    public Neo4JSimpleFdoAdapter(GraphDatabaseService graphDb) {
+    public SimpleFdoAdapter(GraphDatabaseService graphDb) {
 	this.graphDb = graphDb;
 	tx = graphDb.beginTx();
     }

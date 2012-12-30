@@ -17,10 +17,10 @@ import com.crypticbit.f2f.db.History;
 import com.crypticbit.f2f.db.IllegalJsonException;
 import com.crypticbit.f2f.db.JsonPersistenceException;
 import com.crypticbit.f2f.db.neo4j.Neo4JGraphNode;
-import com.crypticbit.f2f.db.neo4j.strategies.CompoundFdoAdapter;
 import com.crypticbit.f2f.db.neo4j.strategies.FundementalDatabaseOperations;
 import com.crypticbit.f2f.db.neo4j.strategies.FundementalDatabaseOperations.UpdateOperation;
-import com.crypticbit.f2f.db.neo4j.strategies.Neo4JSimpleFdoAdapter;
+import com.crypticbit.f2f.db.neo4j.strategies.SimpleFdoAdapter;
+import com.crypticbit.f2f.db.neo4j.strategies.TimeStampedHistoryAdapter;
 import com.crypticbit.f2f.db.neo4j.types.NodeTypes;
 import com.crypticbit.f2f.db.neo4j.types.RelationshipParameters;
 import com.crypticbit.f2f.db.neo4j.types.RelationshipTypes;
@@ -64,7 +64,7 @@ public class GraphNodeImpl implements Neo4JGraphNode {
     }
 
     public FundementalDatabaseOperations getStrategy() {
-	return new CompoundFdoAdapter(getDatabaseService());
+	return new TimeStampedHistoryAdapter(getDatabaseService(), new SimpleFdoAdapter(getDatabaseService()));
     }
 
     private GraphDatabaseService getDatabaseService() {
@@ -111,7 +111,7 @@ public class GraphNodeImpl implements Neo4JGraphNode {
 		    return graphNode;
 		}
 	    });
-	    for (Relationship r : graphNode.getDatabaseNode().getRelationships(RelationshipTypes.HISTORY,
+	    for (Relationship r : graphNode.getDatabaseNode().getRelationships(RelationshipTypes.PREVIOUS_VERSION,
 		    Direction.OUTGOING)) {
 
 		System.out.println("Found " + r + " between " + r.getStartNode() + "," + r.getEndNode());
@@ -141,7 +141,7 @@ public class GraphNodeImpl implements Neo4JGraphNode {
 
     }
 
-    static void populateWithJson(Neo4JSimpleFdoAdapter dal, Node graphNode, JsonNode jsonNode) {
+    static void populateWithJson(SimpleFdoAdapter dal, Node graphNode, JsonNode jsonNode) {
 	if (jsonNode.isContainerNode()) {
 	    if (jsonNode.isArray()) {
 		graphNode.setProperty(RelationshipParameters.TYPE.name(), NodeTypes.ARRAY.toString());
@@ -163,10 +163,11 @@ public class GraphNodeImpl implements Neo4JGraphNode {
 	}
     }
 
-    public static void overwriteElement(FundementalDatabaseOperations db, Relationship relationshipToNode, final JsonNode json) {
+    public static void overwriteElement(FundementalDatabaseOperations db, Relationship relationshipToNode,
+	    final JsonNode json) {
 	db.update(relationshipToNode, true, new UpdateOperation() {
 	    @Override
-	    public void updateElement(Neo4JSimpleFdoAdapter dal, Node node) {
+	    public void updateElement(SimpleFdoAdapter dal, Node node) {
 		populateWithJson(dal, node, json);
 	    }
 	});

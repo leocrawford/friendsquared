@@ -59,7 +59,7 @@ public interface FundementalDatabaseOperations {
      * 
      */
     public interface UpdateOperation {
-	void updateElement(Neo4JSimpleFdoAdapter dal, Node node);
+	void updateElement(SimpleFdoAdapter dal, Node node);
     }
 
     public void commit();
