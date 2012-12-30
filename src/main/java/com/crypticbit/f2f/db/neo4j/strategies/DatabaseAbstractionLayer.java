@@ -15,177 +15,197 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 public class DatabaseAbstractionLayer implements FundementalDatabaseOperations {
 
-    private FundementalDatabaseOperations actualDatabase = this;
-    private GraphDatabaseService grapgDb;
-    private Transaction tx;
+	private FundementalDatabaseOperations actualDatabase = this;
+	private GraphDatabaseService grapgDb;
+	private Transaction tx;
 
-    public DatabaseAbstractionLayer(GraphDatabaseService grapgDb) {
-	this.grapgDb = grapgDb;
-    }
+	public DatabaseAbstractionLayer(GraphDatabaseService grapgDb) {
+		this.grapgDb = grapgDb;
+	}
 
-    public void beginTransaction() {
-	tx = grapgDb.beginTx();
-    }
-    
-    public void successTransaction() {
-	tx.success();
-    }
-    
-    public void finishTransaction() {
-	tx.finish();
-    }
-    
-    public void failureTransaction() {
-	tx.failure();
-    }
+	public void beginTransaction() {
+		tx = grapgDb.beginTx();
+	}
 
-    public void addElementToMap(Relationship relationshipToParent, final String key, final JsonNode json) {
-	// this is a create, and an update (on the parent)
-	actualDatabase.update(relationshipToParent, false, new Operation() {
-	    @Override
-	    public void updateElement(Node node) {
-		addElementToMap(node, key, json);
-	    }
-	});
-    }
+	public void successTransaction() {
+		tx.success();
+	}
 
-    Node addElementToMap(Node node, final String key, JsonNode json) {
-	Node newNode = actualDatabase.createNewNode();
-	populateWithJson(newNode, json);
-	node.createRelationshipTo(newNode, RelationshipTypes.MAP).setProperty(RelationshipParameters.KEY.name(), key);
-	return newNode;
-    }
+	public void finishTransaction() {
+		tx.finish();
+	}
 
-    public void addElementToArray(Relationship relationshipToParent, final JsonNode json) {
-	// this is a create, and an update (on the parent)
-	actualDatabase.update(relationshipToParent, false, new Operation() {
-	    @Override
-	    public void updateElement(Node node) {
-		addElementToArray(node, findNextUnusedIndex(node), json);
-	    }
-	});
-    }
+	public void failureTransaction() {
+		tx.failure();
+	}
 
-    Node addElementToArray(Node node, int index, JsonNode json) {
-	Node newNode = actualDatabase.createNewNode();
-	populateWithJson(newNode, json);
-	node.createRelationshipTo(newNode, RelationshipTypes.ARRAY).setProperty(RelationshipParameters.INDEX.name(), index);
-	return newNode;
-    }
+	public void addElementToMap(Relationship relationshipToParent,
+			final String key, final JsonNode json) {
+		// this is a create, and an update (on the parent)
+		actualDatabase.update(relationshipToParent, false, new Operation() {
+			@Override
+			public void updateElement(Node node) {
+				addElementToMap(node, key, json);
+			}
+		});
+	}
 
-    private void populateWithJson(Node graphNode, JsonNode jsonNode) {
-	if (jsonNode.isContainerNode()) {
-	    if (jsonNode.isArray()) {
-		graphNode.setProperty(RelationshipParameters.TYPE.name(), NodeTypes.ARRAY.toString());
-		for (int loop = 0; loop < jsonNode.size(); loop++) {
-		    addElementToArray(graphNode, loop, jsonNode.get(loop));
+	Node addElementToMap(Node node, final String key, JsonNode json) {
+		Node newNode = actualDatabase.createNewNode();
+		populateWithJson(newNode, json);
+		node.createRelationshipTo(newNode, RelationshipTypes.MAP).setProperty(
+				RelationshipParameters.KEY.name(), key);
+		return newNode;
+	}
+
+	public void addElementToArray(Relationship relationshipToParent,
+			final JsonNode json) {
+		// this is a create, and an update (on the parent)
+		actualDatabase.update(relationshipToParent, false, new Operation() {
+			@Override
+			public void updateElement(Node node) {
+				addElementToArray(node, findNextUnusedIndex(node), json);
+			}
+		});
+	}
+
+	Node addElementToArray(Node node, int index, JsonNode json) {
+		Node newNode = actualDatabase.createNewNode();
+		populateWithJson(newNode, json);
+		node.createRelationshipTo(newNode, RelationshipTypes.ARRAY)
+				.setProperty(RelationshipParameters.INDEX.name(), index);
+		return newNode;
+	}
+
+	private void populateWithJson(Node graphNode, JsonNode jsonNode) {
+		if (jsonNode.isContainerNode()) {
+			if (jsonNode.isArray()) {
+				graphNode.setProperty(RelationshipParameters.TYPE.name(),
+						NodeTypes.ARRAY.toString());
+				for (int loop = 0; loop < jsonNode.size(); loop++) {
+					addElementToArray(graphNode, loop, jsonNode.get(loop));
+				}
+			}
+			if (jsonNode.isObject()) {
+				graphNode.setProperty(RelationshipParameters.TYPE.name(),
+						NodeTypes.MAP.toString());
+				Iterator<String> fieldNamesIterator = jsonNode.fieldNames();
+				while (fieldNamesIterator.hasNext()) {
+					String f = fieldNamesIterator.next();
+					addElementToMap(graphNode, f, jsonNode.get(f));
+				}
+			}
+		} else {
+			graphNode.setProperty(RelationshipParameters.TYPE.name(),
+					NodeTypes.VALUE.toString());
+			graphNode.setProperty(RelationshipParameters.VALUE.name(),
+					jsonNode.toString());
 		}
-	    }
-	    if (jsonNode.isObject()) {
-		graphNode.setProperty(RelationshipParameters.TYPE.name(), NodeTypes.MAP.toString());
-		Iterator<String> fieldNamesIterator = jsonNode.fieldNames();
-		while (fieldNamesIterator.hasNext()) {
-		    String f = fieldNamesIterator.next();
-		    addElementToMap(graphNode, f, jsonNode.get(f));
+	}
+
+	public void removeElementFromMap(Relationship relationshipToParent,
+			final String key) {
+		// this is a delete (on node) and update (on parent)
+		actualDatabase.update(relationshipToParent, false, new Operation() {
+			@Override
+			public void updateElement(Node node) {
+				for (Relationship relationshipToNodeToDelete : node
+						.getRelationships(Direction.OUTGOING,
+								RelationshipTypes.MAP))
+					if (relationshipToNodeToDelete.getProperty(
+							RelationshipParameters.KEY.name()).equals(key))
+						actualDatabase.delete(relationshipToNodeToDelete);
+			}
+		});
+	}
+
+	public void removeElementFromArray(Relationship relationshipToParent,
+			final int index) {
+		// this is a delete (on node) and update (on parent)
+		actualDatabase.update(relationshipToParent, false, new Operation() {
+			@Override
+			public void updateElement(Node node) {
+				for (Relationship relationshipToNodeToDelete : node
+						.getRelationships(Direction.OUTGOING,
+								RelationshipTypes.ARRAY))
+					if (relationshipToNodeToDelete.getProperty(
+							RelationshipParameters.INDEX.name()).equals(index))
+						actualDatabase.delete(relationshipToNodeToDelete);
+			}
+		});
+	}
+
+	public void overwriteElement(Relationship relationshipToNode,
+			final JsonNode json) {
+		actualDatabase.update(relationshipToNode, true, new Operation() {
+			@Override
+			public void updateElement(Node node) {
+				populateWithJson(node, json);
+			}
+		});
+
+	}
+
+	public void getElementsFromArray() {
+	}
+
+	public void getElementsFromMap() {
+	}
+
+	private int findNextUnusedIndex(Node parent) {
+		int max = 0;
+		for (Relationship a : parent.getRelationships(Direction.OUTGOING,
+				RelationshipTypes.ARRAY)) {
+			if ((int) a.getProperty(RelationshipParameters.INDEX.name()) > max)
+				max = (int) a.getProperty(RelationshipParameters.INDEX.name());
 		}
-	    }
-	} else {
-	    graphNode.setProperty(RelationshipParameters.TYPE.name(), NodeTypes.VALUE.toString());
-	    graphNode.setProperty(RelationshipParameters.VALUE.name(), jsonNode.toString());
-	}
-    }
-
-    public void removeElementFromMap(Relationship relationshipToParent, final String key) {
-	// this is a delete (on node) and update (on parent)
-	actualDatabase.update(relationshipToParent, false, new Operation() {
-	    @Override
-	    public void updateElement(Node node) {
-		for (Relationship relationshipToNodeToDelete : node.getRelationships(Direction.OUTGOING,
-			RelationshipTypes.MAP))
-		    if (relationshipToNodeToDelete.getProperty(RelationshipParameters.KEY.name()).equals(key))
-			actualDatabase.delete(relationshipToNodeToDelete);
-	    }
-	});
-    }
-
-    public void removeElementFromArray(Relationship relationshipToParent, final int index) {
-	// this is a delete (on node) and update (on parent)
-	actualDatabase.update(relationshipToParent, false, new Operation() {
-	    @Override
-	    public void updateElement(Node node) {
-		for (Relationship relationshipToNodeToDelete : node.getRelationships(Direction.OUTGOING,
-			RelationshipTypes.ARRAY))
-		    if (relationshipToNodeToDelete.getProperty(RelationshipParameters.INDEX.name()).equals(index))
-			actualDatabase.delete(relationshipToNodeToDelete);
-	    }
-	});
-    }
-
-    public void overwriteElement(Relationship relationshipToNode, final JsonNode json) {
-	actualDatabase.update(relationshipToNode, true, new Operation() {
-	    @Override
-	    public void updateElement(Node node) {
-		populateWithJson(node, json);
-	    }
-	});
-
-    }
-
-    public void getElementsFromArray() {
-    }
-
-    public void getElementsFromMap() {
-    }
-
-    private int findNextUnusedIndex(Node parent) {
-	int max = 0;
-	for (Relationship a : parent.getRelationships(Direction.OUTGOING, RelationshipTypes.ARRAY)) {
-	    if ((int) a.getProperty(RelationshipParameters.INDEX.name()) > max)
-		max = (int) a.getProperty(RelationshipParameters.INDEX.name());
-	}
-	return max + 1;
-    }
-
-    // ADO
-
-    @Override
-    public Node createNewNode() {
-	return grapgDb.createNode();
-    }
-
-    @Override
-    public void update(Relationship relationshipToParent, boolean removeEverything, Operation o) {
-	if (removeEverything) {
-	    removeRelationships(relationshipToParent.getEndNode(), RelationshipTypes.ARRAY, RelationshipTypes.MAP);
-	    removeProperties(relationshipToParent.getEndNode(), RelationshipParameters.values());
-	}
-	o.updateElement(relationshipToParent.getEndNode());
-    }
-
-    private void removeProperties(Node node, RelationshipParameters[] values) {
-	for (RelationshipParameters key : values) {
-	    node.removeProperty(key.name());
+		return max + 1;
 	}
 
-    }
+	// ADO
 
-    private void removeRelationships(Node node, RelationshipTypes... types) {
-	for (Relationship relationship : node.getRelationships(Direction.OUTGOING, types)) {
-	    relationship.delete();
+	@Override
+	public Node createNewNode() {
+		return grapgDb.createNode();
 	}
-	// FIXME - what do we do at other end? Actually delete (and possibly
-	// screw up history, or garbage collect?
-    }
 
-    @Override
-    public Node read(Relationship r) {
-	return r.getEndNode();
-    }
+	@Override
+	public void update(Relationship relationshipToParent,
+			boolean removeEverything, Operation o) {
+		if (removeEverything) {
+			removeRelationships(relationshipToParent.getEndNode(),
+					RelationshipTypes.ARRAY, RelationshipTypes.MAP);
+			removeProperties(relationshipToParent.getEndNode(),
+					RelationshipParameters.values());
+		}
+		o.updateElement(relationshipToParent.getEndNode());
+	}
 
-    @Override
-    public void delete(Relationship relationshipToNodeToDelete) {
-	Node nodeAtOtherEnd = relationshipToNodeToDelete.getEndNode();
-	relationshipToNodeToDelete.delete();
-	nodeAtOtherEnd.delete();
-    }
+	private void removeProperties(Node node, RelationshipParameters[] values) {
+		for (RelationshipParameters key : values) {
+			node.removeProperty(key.name());
+		}
+
+	}
+
+	private void removeRelationships(Node node, RelationshipTypes... types) {
+		for (Relationship relationship : node.getRelationships(
+				Direction.OUTGOING, types)) {
+			relationship.delete();
+		}
+		// FIXME - what do we do at other end? Actually delete (and possibly
+		// screw up history, or garbage collect?
+	}
+
+	@Override
+	public Node read(Relationship r) {
+		return r.getEndNode();
+	}
+
+	@Override
+	public void delete(Relationship relationshipToNodeToDelete) {
+		Node nodeAtOtherEnd = relationshipToNodeToDelete.getEndNode();
+		relationshipToNodeToDelete.delete();
+		nodeAtOtherEnd.delete();
+	}
 }
