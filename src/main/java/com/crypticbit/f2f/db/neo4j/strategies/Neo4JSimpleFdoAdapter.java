@@ -9,38 +9,39 @@ import org.neo4j.graphdb.Transaction;
 import com.crypticbit.f2f.db.neo4j.types.RelationshipParameters;
 import com.crypticbit.f2f.db.neo4j.types.RelationshipTypes;
 
-public class DatabaseAbstractionLayer implements FundementalDatabaseOperations {
+public class Neo4JSimpleFdoAdapter implements FundementalDatabaseOperations {
 
-    private GraphDatabaseService grapgDb;
+    private GraphDatabaseService graphDb;
     private Transaction tx;
 
-    public DatabaseAbstractionLayer(GraphDatabaseService grapgDb) {
-	this.grapgDb = grapgDb;
+    public Neo4JSimpleFdoAdapter(GraphDatabaseService graphDb) {
+	this.graphDb = graphDb;
+	tx = graphDb.beginTx();
     }
 
-    public void beginTransaction() {
-	tx = grapgDb.beginTx();
-    }
-
-    public void successTransaction() {
+    public void commit() {
 	tx.success();
-    }
-
-    public void finishTransaction() {
 	tx.finish();
+	tx = null;
     }
 
-    public void failureTransaction() {
+    public void rollback() {
 	tx.failure();
+	tx.finish();
+	tx = null;
+    }
+
+    protected void finalize() {
+	assert tx == null;
     }
 
     @Override
     public Node createNewNode() {
-	return grapgDb.createNode();
+	return graphDb.createNode();
     }
 
     @Override
-    public void update(Relationship relationshipToParent, boolean removeEverything, Operation o) {
+    public void update(Relationship relationshipToParent, boolean removeEverything, UpdateOperation o) {
 	if (removeEverything) {
 	    removeRelationships(relationshipToParent.getEndNode(), RelationshipTypes.ARRAY, RelationshipTypes.MAP);
 	    removeProperties(relationshipToParent.getEndNode(), RelationshipParameters.values());

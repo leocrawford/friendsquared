@@ -14,8 +14,8 @@ import com.crypticbit.f2f.db.History;
 import com.crypticbit.f2f.db.IllegalJsonException;
 import com.crypticbit.f2f.db.JsonPersistenceException;
 import com.crypticbit.f2f.db.neo4j.Neo4JGraphNode;
-import com.crypticbit.f2f.db.neo4j.strategies.DatabaseAbstractionLayer;
-import com.crypticbit.f2f.db.neo4j.strategies.FundementalDatabaseOperations.Operation;
+import com.crypticbit.f2f.db.neo4j.strategies.FundementalDatabaseOperations.UpdateOperation;
+import com.crypticbit.f2f.db.neo4j.strategies.Neo4JSimpleFdoAdapter;
 import com.crypticbit.f2f.db.neo4j.types.NodeTypes;
 import com.crypticbit.f2f.db.neo4j.types.RelationshipParameters;
 import com.crypticbit.f2f.db.neo4j.types.RelationshipTypes;
@@ -141,30 +141,27 @@ public class ArrayGraphNode extends AbstractList<Neo4JGraphNode> implements Neo4
 
     @Override
     public void add(String json) throws IllegalJsonException, JsonPersistenceException {
-	DatabaseAbstractionLayer db = getStrategy();
-	db.beginTransaction();
+	Neo4JSimpleFdoAdapter db = getStrategy();
 	try {
 	    final JsonNode values = new ObjectMapper().readTree(json);
-		db.update(virtualSuperclass.getIncomingRelationship(), false, new Operation() {
-		    @Override
-		    public void updateElement(DatabaseAbstractionLayer dal, Node node) {
-			addElementToArray(dal, node, findNextUnusedIndex(node), values);
-		    }
-		});
-	    db.successTransaction();
+	    db.update(virtualSuperclass.getIncomingRelationship(), false, new UpdateOperation() {
+		@Override
+		public void updateElement(Neo4JSimpleFdoAdapter dal, Node node) {
+		    addElementToArray(dal, node, findNextUnusedIndex(node), values);
+		}
+	    });
+	    db.commit();
 	} catch (JsonProcessingException jpe) {
-	    db.failureTransaction();
+	    db.rollback();
 	    throw new IllegalJsonException("The JSON string was badly formed: " + json, jpe);
 	} catch (IOException e) {
-	    db.failureTransaction();
+	    db.rollback();
 	    throw new JsonPersistenceException("IOException whilst writing data to database", e);
-	} finally {
-	    db.finishTransaction();
 	}
 
     }
 
-    static Node addElementToArray(DatabaseAbstractionLayer dal, Node node, int index, JsonNode json) {
+    static Node addElementToArray(Neo4JSimpleFdoAdapter dal, Node node, int index, JsonNode json) {
 	Node newNode = dal.createNewNode();
 	GraphNodeImpl.populateWithJson(dal, newNode, json);
 	node.createRelationshipTo(newNode, RelationshipTypes.ARRAY).setProperty(RelationshipParameters.INDEX.name(),
@@ -174,10 +171,10 @@ public class ArrayGraphNode extends AbstractList<Neo4JGraphNode> implements Neo4
 
     public void removeElementFromArray(Relationship relationshipToParent, final int index) {
 	// this is a delete (on node) and update (on parent)
-	DatabaseAbstractionLayer db = getStrategy();
-	db.update(relationshipToParent, false, new Operation() {
+	Neo4JSimpleFdoAdapter db = getStrategy();
+	db.update(relationshipToParent, false, new UpdateOperation() {
 	    @Override
-	    public void updateElement(DatabaseAbstractionLayer dal, Node node) {
+	    public void updateElement(Neo4JSimpleFdoAdapter dal, Node node) {
 		for (Relationship relationshipToNodeToDelete : node.getRelationships(Direction.OUTGOING,
 			RelationshipTypes.ARRAY))
 		    if (relationshipToNodeToDelete.getProperty(RelationshipParameters.INDEX.name()).equals(index))
@@ -196,7 +193,7 @@ public class ArrayGraphNode extends AbstractList<Neo4JGraphNode> implements Neo4
     }
 
     @Override
-    public DatabaseAbstractionLayer getStrategy() {
+    public Neo4JSimpleFdoAdapter getStrategy() {
 	return virtualSuperclass.getStrategy();
     }
 

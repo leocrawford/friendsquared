@@ -17,8 +17,8 @@ import com.crypticbit.f2f.db.History;
 import com.crypticbit.f2f.db.IllegalJsonException;
 import com.crypticbit.f2f.db.JsonPersistenceException;
 import com.crypticbit.f2f.db.neo4j.Neo4JGraphNode;
-import com.crypticbit.f2f.db.neo4j.strategies.DatabaseAbstractionLayer;
-import com.crypticbit.f2f.db.neo4j.strategies.FundementalDatabaseOperations.Operation;
+import com.crypticbit.f2f.db.neo4j.strategies.FundementalDatabaseOperations.UpdateOperation;
+import com.crypticbit.f2f.db.neo4j.strategies.Neo4JSimpleFdoAdapter;
 import com.crypticbit.f2f.db.neo4j.types.NodeTypes;
 import com.crypticbit.f2f.db.neo4j.types.RelationshipParameters;
 import com.crypticbit.f2f.db.neo4j.types.RelationshipTypes;
@@ -156,34 +156,28 @@ public class MapGraphNode extends AbstractMap<String, Neo4JGraphNode> implements
 	if (this.containsKey(key))
 	    this.get(key).overwrite(json);
 	else {
-
-	    DatabaseAbstractionLayer db = getStrategy();
-	    db.beginTransaction();
+	    Neo4JSimpleFdoAdapter db = getStrategy();
 	    try {
 		final JsonNode values = new ObjectMapper().readTree(json);
-
 		// this is a create, and an update (on the parent)
-		db.update(virtualSuperclass.getIncomingRelationship(), false, new Operation() {
+		db.update(virtualSuperclass.getIncomingRelationship(), false, new UpdateOperation() {
 		    @Override
-		    public void updateElement(DatabaseAbstractionLayer dal, Node node) {
+		    public void updateElement(Neo4JSimpleFdoAdapter dal, Node node) {
 			addElementToMap(dal, node, key, values);
 		    }
 		});
-		
-		db.successTransaction();
+		db.commit();
 	    } catch (JsonProcessingException jpe) {
-		db.failureTransaction();
+		db.rollback();
 		throw new IllegalJsonException("The JSON string was badly formed: " + json, jpe);
 	    } catch (IOException e) {
-		db.failureTransaction();
+		db.rollback();
 		throw new JsonPersistenceException("IOException whilst writing data to database", e);
-	    } finally {
-		db.finishTransaction();
 	    }
 	}
     }
 
-    static Node addElementToMap(DatabaseAbstractionLayer dal, Node node, final String key, JsonNode json) {
+    static Node addElementToMap(Neo4JSimpleFdoAdapter dal, Node node, final String key, JsonNode json) {
 	Node newNode = dal.createNewNode();
 	GraphNodeImpl.populateWithJson(dal, newNode, json);
 	node.createRelationshipTo(newNode, RelationshipTypes.MAP).setProperty(RelationshipParameters.KEY.name(), key);
@@ -192,10 +186,10 @@ public class MapGraphNode extends AbstractMap<String, Neo4JGraphNode> implements
 
     public void removeElementFromMap(Relationship relationshipToParent, final String key) {
 	// this is a delete (on node) and update (on parent)
-	 DatabaseAbstractionLayer db = getStrategy();
-	db.update(relationshipToParent, false, new Operation() {
+	Neo4JSimpleFdoAdapter db = getStrategy();
+	db.update(relationshipToParent, false, new UpdateOperation() {
 	    @Override
-	    public void updateElement(DatabaseAbstractionLayer dal, Node node) {
+	    public void updateElement(Neo4JSimpleFdoAdapter dal, Node node) {
 		for (Relationship relationshipToNodeToDelete : node.getRelationships(Direction.OUTGOING,
 			RelationshipTypes.MAP))
 		    if (relationshipToNodeToDelete.getProperty(RelationshipParameters.KEY.name()).equals(key))
@@ -210,7 +204,7 @@ public class MapGraphNode extends AbstractMap<String, Neo4JGraphNode> implements
     }
 
     @Override
-    public DatabaseAbstractionLayer getStrategy() {
+    public Neo4JSimpleFdoAdapter getStrategy() {
 	return virtualSuperclass.getStrategy();
     }
 }

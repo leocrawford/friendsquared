@@ -17,8 +17,8 @@ import com.crypticbit.f2f.db.History;
 import com.crypticbit.f2f.db.IllegalJsonException;
 import com.crypticbit.f2f.db.JsonPersistenceException;
 import com.crypticbit.f2f.db.neo4j.Neo4JGraphNode;
-import com.crypticbit.f2f.db.neo4j.strategies.DatabaseAbstractionLayer;
-import com.crypticbit.f2f.db.neo4j.strategies.FundementalDatabaseOperations.Operation;
+import com.crypticbit.f2f.db.neo4j.strategies.FundementalDatabaseOperations.UpdateOperation;
+import com.crypticbit.f2f.db.neo4j.strategies.Neo4JSimpleFdoAdapter;
 import com.crypticbit.f2f.db.neo4j.types.NodeTypes;
 import com.crypticbit.f2f.db.neo4j.types.RelationshipParameters;
 import com.crypticbit.f2f.db.neo4j.types.RelationshipTypes;
@@ -42,20 +42,17 @@ public class GraphNodeImpl implements Neo4JGraphNode {
     }
 
     public void overwrite(String json) throws IllegalJsonException, JsonPersistenceException {
-	DatabaseAbstractionLayer db = getStrategy();
-	db.beginTransaction();
+	Neo4JSimpleFdoAdapter db = getStrategy();
 	try {
 	    JsonNode values = new ObjectMapper().readTree(json);
 	    overwriteElement(db, incomingRelationship, values);
-	    db.successTransaction();
+	    db.commit();
 	} catch (JsonProcessingException jpe) {
-	    db.failureTransaction();
+	    db.rollback();
 	    throw new IllegalJsonException("The JSON string was badly formed: " + json, jpe);
 	} catch (IOException e) {
-	    db.failureTransaction();
+	    db.rollback();
 	    throw new JsonPersistenceException("IOException whilst writing data to database", e);
-	} finally {
-	    db.finishTransaction();
 	}
 
     }
@@ -64,8 +61,8 @@ public class GraphNodeImpl implements Neo4JGraphNode {
 	return incomingRelationship;
     }
 
-    public DatabaseAbstractionLayer getStrategy() {
-	return new DatabaseAbstractionLayer(getDatabaseService());
+    public Neo4JSimpleFdoAdapter getStrategy() {
+	return new Neo4JSimpleFdoAdapter(getDatabaseService());
     }
 
     private GraphDatabaseService getDatabaseService() {
@@ -142,7 +139,7 @@ public class GraphNodeImpl implements Neo4JGraphNode {
 
     }
 
-    static void populateWithJson(DatabaseAbstractionLayer dal, Node graphNode, JsonNode jsonNode) {
+    static void populateWithJson(Neo4JSimpleFdoAdapter dal, Node graphNode, JsonNode jsonNode) {
 	if (jsonNode.isContainerNode()) {
 	    if (jsonNode.isArray()) {
 		graphNode.setProperty(RelationshipParameters.TYPE.name(), NodeTypes.ARRAY.toString());
@@ -164,10 +161,10 @@ public class GraphNodeImpl implements Neo4JGraphNode {
 	}
     }
 
-    public static void overwriteElement(DatabaseAbstractionLayer db, Relationship relationshipToNode, final JsonNode json) {
-	db.update(relationshipToNode, true, new Operation() {
+    public static void overwriteElement(Neo4JSimpleFdoAdapter db, Relationship relationshipToNode, final JsonNode json) {
+	db.update(relationshipToNode, true, new UpdateOperation() {
 	    @Override
-	    public void updateElement(DatabaseAbstractionLayer dal, Node node) {
+	    public void updateElement(Neo4JSimpleFdoAdapter dal, Node node) {
 		populateWithJson(dal, node, json);
 	    }
 	});

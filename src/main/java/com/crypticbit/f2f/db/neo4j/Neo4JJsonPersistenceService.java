@@ -14,7 +14,7 @@ import com.crypticbit.f2f.db.History;
 import com.crypticbit.f2f.db.IllegalJsonException;
 import com.crypticbit.f2f.db.JsonPersistenceException;
 import com.crypticbit.f2f.db.JsonPersistenceService;
-import com.crypticbit.f2f.db.neo4j.strategies.DatabaseAbstractionLayer;
+import com.crypticbit.f2f.db.neo4j.strategies.Neo4JSimpleFdoAdapter;
 import com.crypticbit.f2f.db.neo4j.types.NodeTypes;
 import com.crypticbit.f2f.db.neo4j.types.RelationshipParameters;
 import com.crypticbit.f2f.db.neo4j.types.RelationshipTypes;
@@ -185,7 +185,7 @@ public class Neo4JJsonPersistenceService implements JsonPersistenceService, Neo4
     }
 
     @Override
-    public DatabaseAbstractionLayer getStrategy() {
+    public Neo4JSimpleFdoAdapter getStrategy() {
 	return getRootGraphNode().getStrategy();
     }
 
