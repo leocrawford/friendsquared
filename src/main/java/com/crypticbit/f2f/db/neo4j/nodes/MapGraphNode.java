@@ -17,6 +17,7 @@ import com.crypticbit.f2f.db.History;
 import com.crypticbit.f2f.db.IllegalJsonException;
 import com.crypticbit.f2f.db.JsonPersistenceException;
 import com.crypticbit.f2f.db.neo4j.Neo4JGraphNode;
+import com.crypticbit.f2f.db.neo4j.strategies.FundementalDatabaseOperations;
 import com.crypticbit.f2f.db.neo4j.strategies.FundementalDatabaseOperations.UpdateOperation;
 import com.crypticbit.f2f.db.neo4j.strategies.Neo4JSimpleFdoAdapter;
 import com.crypticbit.f2f.db.neo4j.types.NodeTypes;
@@ -156,7 +157,7 @@ public class MapGraphNode extends AbstractMap<String, Neo4JGraphNode> implements
 	if (this.containsKey(key))
 	    this.get(key).overwrite(json);
 	else {
-	    Neo4JSimpleFdoAdapter db = getStrategy();
+	    FundementalDatabaseOperations db = getStrategy();
 	    try {
 		final JsonNode values = new ObjectMapper().readTree(json);
 		// this is a create, and an update (on the parent)
@@ -186,7 +187,7 @@ public class MapGraphNode extends AbstractMap<String, Neo4JGraphNode> implements
 
     public void removeElementFromMap(Relationship relationshipToParent, final String key) {
 	// this is a delete (on node) and update (on parent)
-	Neo4JSimpleFdoAdapter db = getStrategy();
+	FundementalDatabaseOperations db = getStrategy();
 	db.update(relationshipToParent, false, new UpdateOperation() {
 	    @Override
 	    public void updateElement(Neo4JSimpleFdoAdapter dal, Node node) {
@@ -204,7 +205,7 @@ public class MapGraphNode extends AbstractMap<String, Neo4JGraphNode> implements
     }
 
     @Override
-    public Neo4JSimpleFdoAdapter getStrategy() {
+    public FundementalDatabaseOperations getStrategy() {
 	return virtualSuperclass.getStrategy();
     }
 }

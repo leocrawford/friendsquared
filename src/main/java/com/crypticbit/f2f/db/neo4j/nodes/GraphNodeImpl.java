@@ -17,6 +17,8 @@ import com.crypticbit.f2f.db.History;
 import com.crypticbit.f2f.db.IllegalJsonException;
 import com.crypticbit.f2f.db.JsonPersistenceException;
 import com.crypticbit.f2f.db.neo4j.Neo4JGraphNode;
+import com.crypticbit.f2f.db.neo4j.strategies.CompoundFdoAdapter;
+import com.crypticbit.f2f.db.neo4j.strategies.FundementalDatabaseOperations;
 import com.crypticbit.f2f.db.neo4j.strategies.FundementalDatabaseOperations.UpdateOperation;
 import com.crypticbit.f2f.db.neo4j.strategies.Neo4JSimpleFdoAdapter;
 import com.crypticbit.f2f.db.neo4j.types.NodeTypes;
@@ -42,7 +44,7 @@ public class GraphNodeImpl implements Neo4JGraphNode {
     }
 
     public void overwrite(String json) throws IllegalJsonException, JsonPersistenceException {
-	Neo4JSimpleFdoAdapter db = getStrategy();
+	FundementalDatabaseOperations db = getStrategy();
 	try {
 	    JsonNode values = new ObjectMapper().readTree(json);
 	    overwriteElement(db, incomingRelationship, values);
@@ -61,8 +63,8 @@ public class GraphNodeImpl implements Neo4JGraphNode {
 	return incomingRelationship;
     }
 
-    public Neo4JSimpleFdoAdapter getStrategy() {
-	return new Neo4JSimpleFdoAdapter(getDatabaseService());
+    public FundementalDatabaseOperations getStrategy() {
+	return new CompoundFdoAdapter(getDatabaseService());
     }
 
     private GraphDatabaseService getDatabaseService() {
@@ -161,7 +163,7 @@ public class GraphNodeImpl implements Neo4JGraphNode {
 	}
     }
 
-    public static void overwriteElement(Neo4JSimpleFdoAdapter db, Relationship relationshipToNode, final JsonNode json) {
+    public static void overwriteElement(FundementalDatabaseOperations db, Relationship relationshipToNode, final JsonNode json) {
 	db.update(relationshipToNode, true, new UpdateOperation() {
 	    @Override
 	    public void updateElement(Neo4JSimpleFdoAdapter dal, Node node) {

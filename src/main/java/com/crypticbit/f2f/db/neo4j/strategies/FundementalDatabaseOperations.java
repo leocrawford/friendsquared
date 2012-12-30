@@ -61,4 +61,8 @@ public interface FundementalDatabaseOperations {
     public interface UpdateOperation {
 	void updateElement(Neo4JSimpleFdoAdapter dal, Node node);
     }
+
+    public void commit();
+
+    public void rollback();
 }

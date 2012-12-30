@@ -14,6 +14,7 @@ import com.crypticbit.f2f.db.History;
 import com.crypticbit.f2f.db.IllegalJsonException;
 import com.crypticbit.f2f.db.JsonPersistenceException;
 import com.crypticbit.f2f.db.neo4j.Neo4JGraphNode;
+import com.crypticbit.f2f.db.neo4j.strategies.FundementalDatabaseOperations;
 import com.crypticbit.f2f.db.neo4j.strategies.FundementalDatabaseOperations.UpdateOperation;
 import com.crypticbit.f2f.db.neo4j.strategies.Neo4JSimpleFdoAdapter;
 import com.crypticbit.f2f.db.neo4j.types.NodeTypes;
@@ -141,7 +142,7 @@ public class ArrayGraphNode extends AbstractList<Neo4JGraphNode> implements Neo4
 
     @Override
     public void add(String json) throws IllegalJsonException, JsonPersistenceException {
-	Neo4JSimpleFdoAdapter db = getStrategy();
+	FundementalDatabaseOperations db = getStrategy();
 	try {
 	    final JsonNode values = new ObjectMapper().readTree(json);
 	    db.update(virtualSuperclass.getIncomingRelationship(), false, new UpdateOperation() {
@@ -171,7 +172,7 @@ public class ArrayGraphNode extends AbstractList<Neo4JGraphNode> implements Neo4
 
     public void removeElementFromArray(Relationship relationshipToParent, final int index) {
 	// this is a delete (on node) and update (on parent)
-	Neo4JSimpleFdoAdapter db = getStrategy();
+	FundementalDatabaseOperations db = getStrategy();
 	db.update(relationshipToParent, false, new UpdateOperation() {
 	    @Override
 	    public void updateElement(Neo4JSimpleFdoAdapter dal, Node node) {
@@ -193,7 +194,7 @@ public class ArrayGraphNode extends AbstractList<Neo4JGraphNode> implements Neo4
     }
 
     @Override
-    public Neo4JSimpleFdoAdapter getStrategy() {
+    public FundementalDatabaseOperations getStrategy() {
 	return virtualSuperclass.getStrategy();
     }
 
