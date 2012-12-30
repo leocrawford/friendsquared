@@ -18,6 +18,7 @@ import com.crypticbit.f2f.db.IllegalJsonException;
 import com.crypticbit.f2f.db.JsonPersistenceException;
 import com.crypticbit.f2f.db.neo4j.Neo4JGraphNode;
 import com.crypticbit.f2f.db.neo4j.strategies.DatabaseAbstractionLayer;
+import com.crypticbit.f2f.db.neo4j.strategies.FundementalDatabaseOperations.Operation;
 import com.crypticbit.f2f.db.neo4j.types.NodeTypes;
 import com.crypticbit.f2f.db.neo4j.types.RelationshipParameters;
 import com.crypticbit.f2f.db.neo4j.types.RelationshipTypes;
@@ -151,7 +152,7 @@ public class MapGraphNode extends AbstractMap<String, Neo4JGraphNode> implements
     }
 
     @Override
-    public void put(String key, String json) throws IllegalJsonException, JsonPersistenceException {
+    public void put(final String key, String json) throws IllegalJsonException, JsonPersistenceException {
 	if (this.containsKey(key))
 	    this.get(key).overwrite(json);
 	else {
@@ -159,9 +160,16 @@ public class MapGraphNode extends AbstractMap<String, Neo4JGraphNode> implements
 	    DatabaseAbstractionLayer db = getStrategy();
 	    db.beginTransaction();
 	    try {
-		JsonNode values = new ObjectMapper().readTree(json);
-		db.addElementToMap(virtualSuperclass.getIncomingRelationship(), key, values);
+		final JsonNode values = new ObjectMapper().readTree(json);
 
+		// this is a create, and an update (on the parent)
+		db.update(virtualSuperclass.getIncomingRelationship(), false, new Operation() {
+		    @Override
+		    public void updateElement(DatabaseAbstractionLayer dal, Node node) {
+			addElementToMap(dal, node, key, values);
+		    }
+		});
+		
 		db.successTransaction();
 	    } catch (JsonProcessingException jpe) {
 		db.failureTransaction();
@@ -173,6 +181,27 @@ public class MapGraphNode extends AbstractMap<String, Neo4JGraphNode> implements
 		db.finishTransaction();
 	    }
 	}
+    }
+
+    static Node addElementToMap(DatabaseAbstractionLayer dal, Node node, final String key, JsonNode json) {
+	Node newNode = dal.createNewNode();
+	GraphNodeImpl.populateWithJson(dal, newNode, json);
+	node.createRelationshipTo(newNode, RelationshipTypes.MAP).setProperty(RelationshipParameters.KEY.name(), key);
+	return newNode;
+    }
+
+    public void removeElementFromMap(Relationship relationshipToParent, final String key) {
+	// this is a delete (on node) and update (on parent)
+	 DatabaseAbstractionLayer db = getStrategy();
+	db.update(relationshipToParent, false, new Operation() {
+	    @Override
+	    public void updateElement(DatabaseAbstractionLayer dal, Node node) {
+		for (Relationship relationshipToNodeToDelete : node.getRelationships(Direction.OUTGOING,
+			RelationshipTypes.MAP))
+		    if (relationshipToNodeToDelete.getProperty(RelationshipParameters.KEY.name()).equals(key))
+			dal.delete(relationshipToNodeToDelete);
+	    }
+	});
     }
 
     @Override

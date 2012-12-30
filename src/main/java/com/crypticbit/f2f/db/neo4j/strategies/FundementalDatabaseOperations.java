@@ -3,7 +3,7 @@ package com.crypticbit.f2f.db.neo4j.strategies;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
 
-interface FundementalDatabaseOperations {
+public interface FundementalDatabaseOperations {
 
     public Node createNewNode();
 
@@ -14,6 +14,6 @@ interface FundementalDatabaseOperations {
     void delete(Relationship relationshipToNodeToDelete);
 
     public interface Operation {
-	void updateElement(Node node);
+	void updateElement(DatabaseAbstractionLayer dal, Node node);
     }
 }

@@ -3,6 +3,7 @@ package com.crypticbit.f2f.db.neo4j.nodes;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -17,7 +18,9 @@ import com.crypticbit.f2f.db.IllegalJsonException;
 import com.crypticbit.f2f.db.JsonPersistenceException;
 import com.crypticbit.f2f.db.neo4j.Neo4JGraphNode;
 import com.crypticbit.f2f.db.neo4j.strategies.DatabaseAbstractionLayer;
+import com.crypticbit.f2f.db.neo4j.strategies.FundementalDatabaseOperations.Operation;
 import com.crypticbit.f2f.db.neo4j.types.NodeTypes;
+import com.crypticbit.f2f.db.neo4j.types.RelationshipParameters;
 import com.crypticbit.f2f.db.neo4j.types.RelationshipTypes;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -43,7 +46,7 @@ public class GraphNodeImpl implements Neo4JGraphNode {
 	db.beginTransaction();
 	try {
 	    JsonNode values = new ObjectMapper().readTree(json);
-	    db.overwriteElement(incomingRelationship, values);
+	    overwriteElement(db, incomingRelationship, values);
 	    db.successTransaction();
 	} catch (JsonProcessingException jpe) {
 	    db.failureTransaction();
@@ -56,7 +59,7 @@ public class GraphNodeImpl implements Neo4JGraphNode {
 	}
 
     }
-    
+
     public Relationship getIncomingRelationship() {
 	return incomingRelationship;
     }
@@ -112,8 +115,8 @@ public class GraphNodeImpl implements Neo4JGraphNode {
 	    for (Relationship r : graphNode.getDatabaseNode().getRelationships(RelationshipTypes.HISTORY,
 		    Direction.OUTGOING)) {
 
-		System.out.println("Found "+r+ " between "+r.getStartNode()+","+r.getEndNode());
-		
+		System.out.println("Found " + r + " between " + r.getStartNode() + "," + r.getEndNode());
+
 		final Neo4JGraphNode endNode = NodeTypes.wrapAsGraphNode(r.getEndNode(), r);
 		history.addAll(endNode.getHistory());
 	    }
@@ -136,6 +139,38 @@ public class GraphNodeImpl implements Neo4JGraphNode {
     @Override
     public void add(String json) throws IllegalJsonException, JsonPersistenceException {
 	throw new UnsupportedOperationException("add is to be provided locally");
+
+    }
+
+    static void populateWithJson(DatabaseAbstractionLayer dal, Node graphNode, JsonNode jsonNode) {
+	if (jsonNode.isContainerNode()) {
+	    if (jsonNode.isArray()) {
+		graphNode.setProperty(RelationshipParameters.TYPE.name(), NodeTypes.ARRAY.toString());
+		for (int loop = 0; loop < jsonNode.size(); loop++) {
+		    ArrayGraphNode.addElementToArray(dal, graphNode, loop, jsonNode.get(loop));
+		}
+	    }
+	    if (jsonNode.isObject()) {
+		graphNode.setProperty(RelationshipParameters.TYPE.name(), NodeTypes.MAP.toString());
+		Iterator<String> fieldNamesIterator = jsonNode.fieldNames();
+		while (fieldNamesIterator.hasNext()) {
+		    String f = fieldNamesIterator.next();
+		    MapGraphNode.addElementToMap(dal, graphNode, f, jsonNode.get(f));
+		}
+	    }
+	} else {
+	    graphNode.setProperty(RelationshipParameters.TYPE.name(), NodeTypes.VALUE.toString());
+	    graphNode.setProperty(RelationshipParameters.VALUE.name(), jsonNode.toString());
+	}
+    }
+
+    public static void overwriteElement(DatabaseAbstractionLayer db, Relationship relationshipToNode, final JsonNode json) {
+	db.update(relationshipToNode, true, new Operation() {
+	    @Override
+	    public void updateElement(DatabaseAbstractionLayer dal, Node node) {
+		populateWithJson(dal, node, json);
+	    }
+	});
 
     }
 
