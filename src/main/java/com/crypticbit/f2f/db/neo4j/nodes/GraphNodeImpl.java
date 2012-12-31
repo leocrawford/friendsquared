@@ -49,11 +49,10 @@ public class GraphNodeImpl implements Neo4JGraphNode {
 	return currentNode;
     }
 
-    public void write(String json) throws IllegalJsonException, JsonPersistenceException {
-	FundementalDatabaseOperations db = getStrategy();
+    public void write(final String json) throws IllegalJsonException, JsonPersistenceException {
 	try {
-	    JsonNode values = new ObjectMapper().readTree(json);
-	    overwriteElement(db, incomingRelationship, values);
+	    final JsonNode values = new ObjectMapper().readTree(json);
+	    getStrategy().update(incomingRelationship, true, getJsonUpdateOperation(values));
 	} catch (JsonProcessingException jpe) {
 	    throw new IllegalJsonException("The JSON string was badly formed: " + json, jpe);
 	} catch (IOException e) {
@@ -136,39 +135,35 @@ public class GraphNodeImpl implements Neo4JGraphNode {
 
     }
 
-    static void populateWithJson(FundementalDatabaseOperations dal, Node graphNode, JsonNode jsonNode) {
-	if (jsonNode.isContainerNode()) {
-	    if (jsonNode.isArray()) {
-		graphNode.setProperty(RelationshipParameters.TYPE.name(), NodeTypes.ARRAY.toString());
-		for (int loop = 0; loop < jsonNode.size(); loop++) {
-		    Relationship n = ArrayGraphNode.addElementToArray(dal, graphNode, loop);
-		    overwriteElement(dal, n, jsonNode.get(loop));
-		}
-	    }
-	    if (jsonNode.isObject()) {
-		graphNode.setProperty(RelationshipParameters.TYPE.name(), NodeTypes.MAP.toString());
-		Iterator<String> fieldNamesIterator = jsonNode.fieldNames();
-		while (fieldNamesIterator.hasNext()) {
-		    String f = fieldNamesIterator.next();
-		    Relationship n = MapGraphNode.addElementToMap(dal, graphNode, f);
-		    overwriteElement(dal, n, jsonNode.get(f));
-		}
-	    }
-	} else {
-	    graphNode.setProperty(RelationshipParameters.TYPE.name(), NodeTypes.VALUE.toString());
-	    graphNode.setProperty(RelationshipParameters.VALUE.name(), jsonNode.toString());
-	}
-    }
+    public static UpdateOperation getJsonUpdateOperation(final JsonNode jsonNode) {
+	return new UpdateOperation() {
 
-    public static void overwriteElement(final FundementalDatabaseOperations db, final Relationship relationshipToNode,
-	    final JsonNode json) {
-	db.update(relationshipToNode, true, new UpdateOperation() {
 	    @Override
-	    public void updateElement(Node node) {
-		populateWithJson(db, node, json);
+	    public void updateElement(Node graphNode, FundementalDatabaseOperations dal) {
+		if (jsonNode.isContainerNode()) {
+		    if (jsonNode.isArray()) {
+			graphNode.setProperty(RelationshipParameters.TYPE.name(), NodeTypes.ARRAY.toString());
+			for (int loop = 0; loop < jsonNode.size(); loop++) {
+			    ArrayGraphNode.addElementToArray(dal, graphNode, loop, dal.createNewNode(getJsonUpdateOperation( jsonNode.get(loop))));		    
+			}
+		    }
+		    if (jsonNode.isObject()) {
+			graphNode.setProperty(RelationshipParameters.TYPE.name(), NodeTypes.MAP.toString());
+			Iterator<String> fieldNamesIterator = jsonNode.fieldNames();
+			while (fieldNamesIterator.hasNext()) {
+			    String f = fieldNamesIterator.next();
+			    MapGraphNode.addElementToMap(dal, graphNode, f, dal.createNewNode(getJsonUpdateOperation(jsonNode.get(f))));
+			}
+		    }
+		} else {
+		    graphNode.setProperty(RelationshipParameters.TYPE.name(), NodeTypes.VALUE.toString());
+		    graphNode.setProperty(RelationshipParameters.VALUE.name(), jsonNode.toString());
+		}
+		
 	    }
-	});
-
+	    
+	};
+	
     }
 
     @Override

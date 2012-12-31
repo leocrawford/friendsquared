@@ -3,8 +3,6 @@ package com.crypticbit.f2f.db.neo4j.strategies;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
 
-import com.crypticbit.f2f.db.neo4j.Neo4JGraphNode;
-
 /**
  * The CRUD Operations a database needs to implement - and which can be
  * intercepted, to change behaviour
@@ -17,9 +15,11 @@ public interface FundementalDatabaseOperations {
     /**
      * Create a new node - with no content
      * 
+     * @param updateOperation
+     * 
      * @return the new node
      */
-    public Node createNewNode();
+    public Node createNewNode(UpdateOperation createOperation);
 
     /**
      * Update a the node at the end of the relationship, by applying the
@@ -33,7 +33,7 @@ public interface FundementalDatabaseOperations {
      *            strategies implemented, so they should preserve any unknown
      *            properties or relationships
      * @param operation
-     * @return 
+     * @return
      */
     public void update(Relationship relationshipToParent, boolean removeEverything, UpdateOperation operation);
 
@@ -55,17 +55,28 @@ public interface FundementalDatabaseOperations {
     public void delete(Relationship relationshipToNodeToDelete);
 
     /**
-     * The operation (command pattern) that is to be executed to perform an
-     *s update
+     * The operation (command pattern) that is to be executed to perform an s
+     * update
      * 
      * @author leo
      * 
      */
     public interface UpdateOperation {
-	void updateElement(Node node);
+	void updateElement(Node graphNode, FundementalDatabaseOperations dal);
+    }
+
+    public class NullUpdateOperation implements UpdateOperation {
+	public static NullUpdateOperation INSTANCE = new NullUpdateOperation();
+
+	@Override
+	public void updateElement(Node node, FundementalDatabaseOperations dal) {
+	}
+
     }
 
     public void commit();
 
     public void rollback();
+
+    public void setTopFdo(FundementalDatabaseOperations fdo);
 }

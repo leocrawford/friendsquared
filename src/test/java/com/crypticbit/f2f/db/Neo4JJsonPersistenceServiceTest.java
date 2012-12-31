@@ -142,13 +142,13 @@ public class Neo4JJsonPersistenceServiceTest {
 	rootNode.navigate("second").add().write("\"new value 1\"");
 	rootNode.getStrategy().commit();
 		
-	 ps.startWebServiceAndWait();
+//	 ps.startWebServiceAndWait();
 	
-	assertEquals(2, rootNode.navigate("second").getHistory().size());
+	assertEquals(2, ps.getRootNode().navigate("second").getHistory().size());
 
-	rootNode.navigate("second").add().write("\"new value 2\"");
+	ps.getRootNode().navigate("second").add().write("\"new value 2\"");
 
-	assertEquals(3, rootNode.navigate("second").getHistory().size());
+	assertEquals(3, ps.getRootNode().navigate("second").getHistory().size());
 	
 	
     }

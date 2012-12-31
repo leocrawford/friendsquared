@@ -5,11 +5,13 @@ import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
 
 import com.crypticbit.f2f.db.neo4j.Neo4JGraphNode;
+import com.crypticbit.f2f.db.neo4j.strategies.FundementalDatabaseOperations.UpdateOperation;
 
 public abstract class CompoundFdoAdapter implements FundementalDatabaseOperations {
 
     private FundementalDatabaseOperations nextAdapter;
     private GraphDatabaseService graphDb;
+    private FundementalDatabaseOperations fdo;
 
     public CompoundFdoAdapter(GraphDatabaseService graphDb, FundementalDatabaseOperations nextAdapter) {
 	this.nextAdapter = nextAdapter;
@@ -21,8 +23,8 @@ public abstract class CompoundFdoAdapter implements FundementalDatabaseOperation
     }
 
     @Override
-    public Node createNewNode() {
-	return nextAdapter.createNewNode();
+    public Node createNewNode(UpdateOperation createOperation) {
+	return nextAdapter.createNewNode(createOperation);
     }
 
     @Override
@@ -52,6 +54,11 @@ public abstract class CompoundFdoAdapter implements FundementalDatabaseOperation
     public void rollback() {
 	nextAdapter.rollback();
 
+    }
+    
+    public void setTopFdo(FundementalDatabaseOperations fdo) {
+	this.fdo = fdo;
+	this.nextAdapter.setTopFdo(fdo);
     }
 
 }

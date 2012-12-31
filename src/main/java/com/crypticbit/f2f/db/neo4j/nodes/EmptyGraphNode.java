@@ -14,6 +14,8 @@ import com.crypticbit.f2f.db.IllegalJsonException;
 import com.crypticbit.f2f.db.JsonPersistenceException;
 import com.crypticbit.f2f.db.neo4j.Neo4JGraphNode;
 import com.crypticbit.f2f.db.neo4j.strategies.FundementalDatabaseOperations;
+import com.crypticbit.f2f.db.neo4j.strategies.FundementalDatabaseOperations.NullUpdateOperation;
+import com.crypticbit.f2f.db.neo4j.strategies.FundementalDatabaseOperations.UpdateOperation;
 import com.crypticbit.f2f.db.neo4j.types.NodeTypes;
 import com.crypticbit.f2f.db.neo4j.types.RelationshipParameters;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -45,7 +47,7 @@ public class EmptyGraphNode implements Neo4JGraphNode {
 
     public interface PotentialRelationship {
 
-	Relationship create();
+	Relationship create(UpdateOperation updateOperation);
 
     }
 
@@ -74,26 +76,23 @@ public class EmptyGraphNode implements Neo4JGraphNode {
     @Override
     public void write(String json) throws IllegalJsonException, JsonPersistenceException {
 	if (node == null) {
-	    Relationship r = potentialRelationship.create();
 	    try {
-		GraphNodeImpl.populateWithJson(getStrategy(), r.getEndNode(), new ObjectMapper().readTree(json));
-	    } catch (JsonProcessingException e) {
-		// TODO Auto-generated catch block
-		e.printStackTrace();
+		final JsonNode values = new ObjectMapper().readTree(json);
+		Relationship r = potentialRelationship.create(GraphNodeImpl.getJsonUpdateOperation(values));
+		node = NodeTypes.wrapAsGraphNode(r.getEndNode(), r, getStrategy());
+	    } catch (JsonProcessingException jpe) {
+		throw new IllegalJsonException("The JSON string was badly formed: " + json, jpe);
 	    } catch (IOException e) {
-		// TODO Auto-generated catch block
-		e.printStackTrace();
+		throw new JsonPersistenceException("IOException whilst writing data to database", e);
 	    }
-	    node = NodeTypes.wrapAsGraphNode(r.getEndNode(), r, getStrategy());
-	}
-	else
+	} else
 	    node.write(json);
 
     }
 
     private void makeRelationsipTangibleIfNotAlready(NodeTypes nodeType) {
 	if (node == null) {
-	    Relationship r = potentialRelationship.create();
+	    Relationship r = potentialRelationship.create(NullUpdateOperation.INSTANCE);
 	    node.getDatabaseNode().setProperty(RelationshipParameters.TYPE.name(), nodeType);
 	    node = NodeTypes.wrapAsGraphNode(r.getEndNode(), r, getStrategy());
 	}

@@ -13,10 +13,10 @@ public class SimpleFdoAdapter implements FundementalDatabaseOperations {
 
     private GraphDatabaseService graphDb;
     private Transaction tx;
+    private FundementalDatabaseOperations fdo;
 
     public SimpleFdoAdapter(GraphDatabaseService graphDb) {
 	this.graphDb = graphDb;
-	System.out.println("Starting transaction");
 	tx = graphDb.beginTx();
     }
 
@@ -24,7 +24,6 @@ public class SimpleFdoAdapter implements FundementalDatabaseOperations {
 	tx.success();
 	tx.finish();
 	tx = null;
-	System.out.println("Closed transaction");
     }
 
     public void rollback() {
@@ -38,9 +37,11 @@ public class SimpleFdoAdapter implements FundementalDatabaseOperations {
     }
 
     @Override
-    public Node createNewNode() {
+    public Node createNewNode(UpdateOperation createOperation) {
 	checkWithinTransaction();
-	return graphDb.createNode();
+	Node node = graphDb.createNode();
+	createOperation.updateElement(node, fdo);
+	return node;
     }
 
     private void checkWithinTransaction() {
@@ -56,7 +57,7 @@ public class SimpleFdoAdapter implements FundementalDatabaseOperations {
 	    removeRelationships(relationshipToParent.getEndNode(), RelationshipTypes.ARRAY, RelationshipTypes.MAP);
 	    removeProperties(relationshipToParent.getEndNode(), RelationshipParameters.values());
 	}
-	o.updateElement(relationshipToParent.getEndNode());
+	o.updateElement(relationshipToParent.getEndNode(), fdo);
     }
 
     private void removeProperties(Node node, RelationshipParameters[] values) {
@@ -85,5 +86,11 @@ public class SimpleFdoAdapter implements FundementalDatabaseOperations {
 	Node nodeAtOtherEnd = relationshipToNodeToDelete.getEndNode();
 	relationshipToNodeToDelete.delete();
 	nodeAtOtherEnd.delete();
+    }
+
+    @Override
+    public void setTopFdo(FundementalDatabaseOperations fdo) {
+	this.fdo = fdo;
+	
     }
 }

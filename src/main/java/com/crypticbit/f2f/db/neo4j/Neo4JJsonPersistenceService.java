@@ -15,6 +15,8 @@ import com.crypticbit.f2f.db.JsonPersistenceService;
 import com.crypticbit.f2f.db.neo4j.nodes.EmptyGraphNode;
 import com.crypticbit.f2f.db.neo4j.nodes.EmptyGraphNode.PotentialRelationship;
 import com.crypticbit.f2f.db.neo4j.strategies.FundementalDatabaseOperations;
+import com.crypticbit.f2f.db.neo4j.strategies.FundementalDatabaseOperations.NullUpdateOperation;
+import com.crypticbit.f2f.db.neo4j.strategies.FundementalDatabaseOperations.UpdateOperation;
 import com.crypticbit.f2f.db.neo4j.strategies.SimpleFdoAdapter;
 import com.crypticbit.f2f.db.neo4j.strategies.TimeStampedHistoryAdapter;
 import com.crypticbit.f2f.db.neo4j.types.NodeTypes;
@@ -119,8 +121,8 @@ public class Neo4JJsonPersistenceService implements JsonPersistenceService {
 	    
 	    return new EmptyGraphNode(new PotentialRelationship() {
 		@Override
-		public Relationship create() {
-		    Node newNode = fdo.createNewNode();
+		public Relationship create(UpdateOperation createOperation) {
+		    Node newNode = fdo.createNewNode(createOperation);
 		    return getDatabaseNode().createRelationshipTo(newNode, RelationshipTypes.MAP);
 		}
 	    },fdo);
@@ -128,7 +130,9 @@ public class Neo4JJsonPersistenceService implements JsonPersistenceService {
     }
 
     private FundementalDatabaseOperations createDatabase() {
-	    return new TimeStampedHistoryAdapter(graphDb, new SimpleFdoAdapter(graphDb));
+	    TimeStampedHistoryAdapter fdo = new TimeStampedHistoryAdapter(graphDb, new SimpleFdoAdapter(graphDb));
+	    fdo.setTopFdo(fdo);
+	    return fdo;
 
     }
 

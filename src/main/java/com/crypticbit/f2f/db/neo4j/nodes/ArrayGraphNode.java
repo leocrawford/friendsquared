@@ -15,6 +15,7 @@ import com.crypticbit.f2f.db.JsonPersistenceException;
 import com.crypticbit.f2f.db.neo4j.Neo4JGraphNode;
 import com.crypticbit.f2f.db.neo4j.nodes.EmptyGraphNode.PotentialRelationship;
 import com.crypticbit.f2f.db.neo4j.strategies.FundementalDatabaseOperations;
+import com.crypticbit.f2f.db.neo4j.strategies.FundementalDatabaseOperations.NullUpdateOperation;
 import com.crypticbit.f2f.db.neo4j.strategies.FundementalDatabaseOperations.UpdateOperation;
 import com.crypticbit.f2f.db.neo4j.types.NodeTypes;
 import com.crypticbit.f2f.db.neo4j.types.RelationshipParameters;
@@ -149,12 +150,12 @@ public class ArrayGraphNode extends AbstractList<Neo4JGraphNode> implements Neo4
 	    private Relationship r;
 
 	    @Override
-	    public Relationship create() {
+	    public Relationship create(final UpdateOperation createOperation) {
 		getStrategy().update(virtualSuperclass.getIncomingRelationship(), false,
 			new UpdateOperation() {
 			    @Override
-			    public void updateElement(Node node) {
-				r = addElementToArray(getStrategy(), node, findNextUnusedIndex(node));
+			    public void updateElement(Node node, FundementalDatabaseOperations dal) {
+				r = addElementToArray(dal, node, findNextUnusedIndex(node), getStrategy().createNewNode(createOperation));
 			    }
 			});
 		return r;
@@ -163,8 +164,7 @@ public class ArrayGraphNode extends AbstractList<Neo4JGraphNode> implements Neo4
 
     }
 
-    static Relationship addElementToArray(FundementalDatabaseOperations dal, Node node, int index) {
-	Node newNode = dal.createNewNode();
+    static Relationship addElementToArray(FundementalDatabaseOperations dal, Node node, int index, Node newNode) {
 	Relationship r = node.createRelationshipTo(newNode, RelationshipTypes.ARRAY);
 	r.setProperty(RelationshipParameters.INDEX.name(), index);
 	return r;
@@ -172,14 +172,13 @@ public class ArrayGraphNode extends AbstractList<Neo4JGraphNode> implements Neo4
 
     public void removeElementFromArray(final Relationship relationshipToParent, final int index) {
 	// this is a delete (on node) and update (on parent)
-	final FundementalDatabaseOperations db = getStrategy();
-	db.update(relationshipToParent, false, new UpdateOperation() {
+	getStrategy().update(relationshipToParent, false, new UpdateOperation() {
 	    @Override
-	    public void updateElement(Node node) {
+	    public void updateElement(Node node, FundementalDatabaseOperations dal) {
 		for (Relationship relationshipToNodeToDelete : node.getRelationships(Direction.OUTGOING,
 			RelationshipTypes.ARRAY))
 		    if (relationshipToNodeToDelete.getProperty(RelationshipParameters.INDEX.name()).equals(index))
-			db.delete(relationshipToNodeToDelete);
+			dal.delete(relationshipToNodeToDelete);
 	    }
 	});
     }
