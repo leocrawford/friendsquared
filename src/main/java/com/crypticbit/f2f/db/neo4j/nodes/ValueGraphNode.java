@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.node.BaseJsonNode;
 import com.fasterxml.jackson.databind.node.ValueNode;
+import com.jayway.jsonpath.internal.PathToken;
 
 public class ValueGraphNode extends ValueNode implements Neo4JGraphNode {
 
@@ -28,9 +29,9 @@ public class ValueGraphNode extends ValueNode implements Neo4JGraphNode {
     private Node node;
     private GraphNodeImpl virtualSuperclass;
 
-    public ValueGraphNode(Node graphNode, Relationship incomingRelationship) {
+    public ValueGraphNode(Node graphNode, Relationship incomingRelationship, FundementalDatabaseOperations fdo) {
 	this.node = graphNode;
-	virtualSuperclass = new GraphNodeImpl(this, incomingRelationship);
+	virtualSuperclass = new GraphNodeImpl(this, incomingRelationship, fdo);
 	try {
 	    if (graphNode.hasProperty(RelationshipParameters.VALUE.name())) {
 		this.delegate = OBJECT_MAPPER.readTree((String) graphNode.getProperty(RelationshipParameters.VALUE
@@ -97,8 +98,8 @@ public class ValueGraphNode extends ValueNode implements Neo4JGraphNode {
     // delegate methods
 
     @Override
-    public void overwrite(String values) throws IllegalJsonException, JsonPersistenceException {
-	virtualSuperclass.overwrite(values);
+    public void write(String values) throws IllegalJsonException, JsonPersistenceException {
+	virtualSuperclass.write(values);
     }
 
     @Override
@@ -112,12 +113,12 @@ public class ValueGraphNode extends ValueNode implements Neo4JGraphNode {
     }
 
     @Override
-    public void put(String key, String json) throws JsonPersistenceException {
+    public Neo4JGraphNode put(String key) throws JsonPersistenceException {
 	throw new JsonPersistenceException("It's not possible to add data to a child node. ");
     }
 
     @Override
-    public void add(String json) throws JsonPersistenceException {
+    public EmptyGraphNode add() throws JsonPersistenceException {
 	throw new JsonPersistenceException("It's not possible to add data to a child node. ");
     }
 
@@ -125,5 +126,9 @@ public class ValueGraphNode extends ValueNode implements Neo4JGraphNode {
     public FundementalDatabaseOperations getStrategy() {
 	return virtualSuperclass.getStrategy();
     }
+    
+    public Neo4JGraphNode navigate(PathToken token) throws IllegalJsonException {
+   	    throw new IllegalJsonException("It's not possible to navigate within a child node: " + token.getFragment());
+       }
 
 }

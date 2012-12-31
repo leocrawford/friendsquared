@@ -1,6 +1,5 @@
 package com.crypticbit.f2f.db.neo4j.nodes;
 
-import java.io.IOException;
 import java.util.AbstractList;
 import java.util.List;
 import java.util.Map;
@@ -14,16 +13,15 @@ import com.crypticbit.f2f.db.History;
 import com.crypticbit.f2f.db.IllegalJsonException;
 import com.crypticbit.f2f.db.JsonPersistenceException;
 import com.crypticbit.f2f.db.neo4j.Neo4JGraphNode;
+import com.crypticbit.f2f.db.neo4j.nodes.EmptyGraphNode.PotentialRelationship;
 import com.crypticbit.f2f.db.neo4j.strategies.FundementalDatabaseOperations;
 import com.crypticbit.f2f.db.neo4j.strategies.FundementalDatabaseOperations.UpdateOperation;
-import com.crypticbit.f2f.db.neo4j.strategies.SimpleFdoAdapter;
 import com.crypticbit.f2f.db.neo4j.types.NodeTypes;
 import com.crypticbit.f2f.db.neo4j.types.RelationshipParameters;
 import com.crypticbit.f2f.db.neo4j.types.RelationshipTypes;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.jayway.jsonpath.internal.PathToken;
 
 /**
  * This class hold GraphNodes that represent array's. It provides conversions to
@@ -43,15 +41,19 @@ public class ArrayGraphNode extends AbstractList<Neo4JGraphNode> implements Neo4
      * 
      * @param incomingRelationship
      */
-    public ArrayGraphNode(Node node, Relationship incomingRelationship) {
+    public ArrayGraphNode(Node node, Relationship incomingRelationship,FundementalDatabaseOperations fdo) {
 	this.node = node;
-	this.virtualSuperclass = new GraphNodeImpl(this, incomingRelationship);
+	this.virtualSuperclass = new GraphNodeImpl(this, incomingRelationship, fdo);
     }
 
     @Override
     public Neo4JGraphNode get(int index) {
 	updateNodes();
-	return children[index];
+	if (index == children.length)
+	    return add();
+	else
+	    return children[index];
+
     }
 
     @Override
@@ -75,7 +77,7 @@ public class ArrayGraphNode extends AbstractList<Neo4JGraphNode> implements Neo4
 	    Map<Integer, Neo4JGraphNode> map = new TreeMap<Integer, Neo4JGraphNode>();
 	    for (Relationship r : node.getRelationships(RelationshipTypes.ARRAY, Direction.OUTGOING)) {
 		map.put((Integer) r.getProperty(RelationshipParameters.INDEX.name()),
-			NodeTypes.wrapAsGraphNode(r.getEndNode(), r));
+			NodeTypes.wrapAsGraphNode(r.getEndNode(), r, getStrategy()));
 	    }
 	    children = map.values().toArray(new Neo4JGraphNode[map.size()]);
 	}
@@ -111,7 +113,7 @@ public class ArrayGraphNode extends AbstractList<Neo4JGraphNode> implements Neo4
     // delegate methods
 
     @Override
-    public Neo4JGraphNode navigate(String path) {
+    public Neo4JGraphNode navigate(String path) throws IllegalJsonException {
 	return virtualSuperclass.navigate(path);
     }
 
@@ -121,8 +123,8 @@ public class ArrayGraphNode extends AbstractList<Neo4JGraphNode> implements Neo4
     }
 
     @Override
-    public void overwrite(String values) throws IllegalJsonException, JsonPersistenceException {
-	virtualSuperclass.overwrite(values);
+    public void write(String values) throws IllegalJsonException, JsonPersistenceException {
+	virtualSuperclass.write(values);
     }
 
     @Override
@@ -136,50 +138,48 @@ public class ArrayGraphNode extends AbstractList<Neo4JGraphNode> implements Neo4
     }
 
     @Override
-    public void put(String key, String json) throws JsonPersistenceException {
+    public Neo4JGraphNode put(String key) throws JsonPersistenceException {
 	throw new JsonPersistenceException("It's not possible to add a map element to an array node");
     }
 
     @Override
-    public void add(String json) throws IllegalJsonException, JsonPersistenceException {
-	FundementalDatabaseOperations db = getStrategy();
-	try {
-	    final JsonNode values = new ObjectMapper().readTree(json);
-	    db.update(virtualSuperclass.getIncomingRelationship(), false, new UpdateOperation() {
-		@Override
-		public void updateElement(SimpleFdoAdapter dal, Node node) {
-		    addElementToArray(dal, node, findNextUnusedIndex(node), values);
-		}
-	    });
-	    db.commit();
-	} catch (JsonProcessingException jpe) {
-	    db.rollback();
-	    throw new IllegalJsonException("The JSON string was badly formed: " + json, jpe);
-	} catch (IOException e) {
-	    db.rollback();
-	    throw new JsonPersistenceException("IOException whilst writing data to database", e);
-	}
+    public EmptyGraphNode add() {
+
+	return new EmptyGraphNode(new PotentialRelationship() {
+	    private Relationship r;
+
+	    @Override
+	    public Relationship create() {
+		getStrategy().update(virtualSuperclass.getIncomingRelationship(), false,
+			new UpdateOperation() {
+			    @Override
+			    public void updateElement(Node node) {
+				r = addElementToArray(getStrategy(), node, findNextUnusedIndex(node));
+			    }
+			});
+		return r;
+	    }
+	},getStrategy());
 
     }
 
-    static Node addElementToArray(SimpleFdoAdapter dal, Node node, int index, JsonNode json) {
+    static Relationship addElementToArray(FundementalDatabaseOperations dal, Node node, int index) {
 	Node newNode = dal.createNewNode();
-	GraphNodeImpl.populateWithJson(dal, newNode, json);
-	node.createRelationshipTo(newNode, RelationshipTypes.ARRAY).setProperty(RelationshipParameters.INDEX.name(),
-		index);
-	return newNode;
+	Relationship r = node.createRelationshipTo(newNode, RelationshipTypes.ARRAY);
+	r.setProperty(RelationshipParameters.INDEX.name(), index);
+	return r;
     }
 
-    public void removeElementFromArray(Relationship relationshipToParent, final int index) {
+    public void removeElementFromArray(final Relationship relationshipToParent, final int index) {
 	// this is a delete (on node) and update (on parent)
-	FundementalDatabaseOperations db = getStrategy();
+	final FundementalDatabaseOperations db = getStrategy();
 	db.update(relationshipToParent, false, new UpdateOperation() {
 	    @Override
-	    public void updateElement(SimpleFdoAdapter dal, Node node) {
+	    public void updateElement(Node node) {
 		for (Relationship relationshipToNodeToDelete : node.getRelationships(Direction.OUTGOING,
 			RelationshipTypes.ARRAY))
 		    if (relationshipToNodeToDelete.getProperty(RelationshipParameters.INDEX.name()).equals(index))
-			dal.delete(relationshipToNodeToDelete);
+			db.delete(relationshipToNodeToDelete);
 	    }
 	});
     }
@@ -196,6 +196,13 @@ public class ArrayGraphNode extends AbstractList<Neo4JGraphNode> implements Neo4
     @Override
     public FundementalDatabaseOperations getStrategy() {
 	return virtualSuperclass.getStrategy();
+    }
+
+    @Override
+    public Neo4JGraphNode navigate(PathToken token) throws IllegalJsonException {
+	if (!token.isArrayIndexToken())
+	    throw new IllegalJsonException("Expecting an array element in json path expression: " + token.getFragment());
+	return get(token.getArrayIndex());
     }
 
 }

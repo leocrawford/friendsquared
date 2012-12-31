@@ -16,6 +16,7 @@ public class SimpleFdoAdapter implements FundementalDatabaseOperations {
 
     public SimpleFdoAdapter(GraphDatabaseService graphDb) {
 	this.graphDb = graphDb;
+	System.out.println("Starting transaction");
 	tx = graphDb.beginTx();
     }
 
@@ -23,6 +24,7 @@ public class SimpleFdoAdapter implements FundementalDatabaseOperations {
 	tx.success();
 	tx.finish();
 	tx = null;
+	System.out.println("Closed transaction");
     }
 
     public void rollback() {
@@ -37,16 +39,24 @@ public class SimpleFdoAdapter implements FundementalDatabaseOperations {
 
     @Override
     public Node createNewNode() {
+	checkWithinTransaction();
 	return graphDb.createNode();
+    }
+
+    private void checkWithinTransaction() {
+	if (tx == null)
+	    throw new Error("Tried to do operation outside of a transaction");
+
     }
 
     @Override
     public void update(Relationship relationshipToParent, boolean removeEverything, UpdateOperation o) {
+	checkWithinTransaction();
 	if (removeEverything) {
 	    removeRelationships(relationshipToParent.getEndNode(), RelationshipTypes.ARRAY, RelationshipTypes.MAP);
 	    removeProperties(relationshipToParent.getEndNode(), RelationshipParameters.values());
 	}
-	o.updateElement(this, relationshipToParent.getEndNode());
+	o.updateElement(relationshipToParent.getEndNode());
     }
 
     private void removeProperties(Node node, RelationshipParameters[] values) {
@@ -71,6 +81,7 @@ public class SimpleFdoAdapter implements FundementalDatabaseOperations {
 
     @Override
     public void delete(Relationship relationshipToNodeToDelete) {
+	checkWithinTransaction();
 	Node nodeAtOtherEnd = relationshipToNodeToDelete.getEndNode();
 	relationshipToNodeToDelete.delete();
 	nodeAtOtherEnd.delete();

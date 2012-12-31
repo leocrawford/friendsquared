@@ -7,4 +7,8 @@ public class IllegalJsonException extends Exception {
 	super(message,throwable);
     }
 
+    public IllegalJsonException(String message) {
+	super(message);
+    }
+
 }

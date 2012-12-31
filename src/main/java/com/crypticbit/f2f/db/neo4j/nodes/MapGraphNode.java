@@ -1,6 +1,5 @@
 package com.crypticbit.f2f.db.neo4j.nodes;
 
-import java.io.IOException;
 import java.util.AbstractMap;
 import java.util.AbstractSet;
 import java.util.HashSet;
@@ -17,16 +16,15 @@ import com.crypticbit.f2f.db.History;
 import com.crypticbit.f2f.db.IllegalJsonException;
 import com.crypticbit.f2f.db.JsonPersistenceException;
 import com.crypticbit.f2f.db.neo4j.Neo4JGraphNode;
+import com.crypticbit.f2f.db.neo4j.nodes.EmptyGraphNode.PotentialRelationship;
 import com.crypticbit.f2f.db.neo4j.strategies.FundementalDatabaseOperations;
 import com.crypticbit.f2f.db.neo4j.strategies.FundementalDatabaseOperations.UpdateOperation;
-import com.crypticbit.f2f.db.neo4j.strategies.SimpleFdoAdapter;
 import com.crypticbit.f2f.db.neo4j.types.NodeTypes;
 import com.crypticbit.f2f.db.neo4j.types.RelationshipParameters;
 import com.crypticbit.f2f.db.neo4j.types.RelationshipTypes;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.jayway.jsonpath.internal.PathToken;
 
 /**
  * Wraps a database node as a node that holds Map's
@@ -38,9 +36,9 @@ public class MapGraphNode extends AbstractMap<String, Neo4JGraphNode> implements
     private Set<Map.Entry<String, Neo4JGraphNode>> children;
     private GraphNodeImpl virtualSuperclass;
 
-    public MapGraphNode(Node node, Relationship incomingRelationship) {
+    public MapGraphNode(Node node, Relationship incomingRelationship, FundementalDatabaseOperations fdo) {
 	this.node = node;
-	this.virtualSuperclass = new GraphNodeImpl(this, incomingRelationship);
+	this.virtualSuperclass = new GraphNodeImpl(this, incomingRelationship, fdo);
     }
 
     @Override
@@ -77,7 +75,8 @@ public class MapGraphNode extends AbstractMap<String, Neo4JGraphNode> implements
 			    .iterator().next().getEndNode();
 		}
 		children.add(new AbstractMap.SimpleImmutableEntry<String, Neo4JGraphNode>((String) r
-			.getProperty(RelationshipParameters.KEY.name()), NodeTypes.wrapAsGraphNode(chosenNode, r)));
+			.getProperty(RelationshipParameters.KEY.name()), NodeTypes.wrapAsGraphNode(chosenNode, r,
+			getStrategy())));
 	    }
 	}
     }
@@ -128,7 +127,7 @@ public class MapGraphNode extends AbstractMap<String, Neo4JGraphNode> implements
     // delegate methods
 
     @Override
-    public Neo4JGraphNode navigate(String path) {
+    public Neo4JGraphNode navigate(String path) throws IllegalJsonException {
 	return virtualSuperclass.navigate(path);
     }
 
@@ -138,8 +137,8 @@ public class MapGraphNode extends AbstractMap<String, Neo4JGraphNode> implements
     }
 
     @Override
-    public void overwrite(String values) throws IllegalJsonException, JsonPersistenceException {
-	virtualSuperclass.overwrite(values);
+    public void write(String values) throws IllegalJsonException, JsonPersistenceException {
+	virtualSuperclass.write(values);
     }
 
     @Override
@@ -153,59 +152,66 @@ public class MapGraphNode extends AbstractMap<String, Neo4JGraphNode> implements
     }
 
     @Override
-    public void put(final String key, String json) throws IllegalJsonException, JsonPersistenceException {
+    public Neo4JGraphNode put(final String key) {
 	if (this.containsKey(key))
-	    this.get(key).overwrite(json);
+	    return this.get(key);
 	else {
-	    FundementalDatabaseOperations db = getStrategy();
-	    try {
-		final JsonNode values = new ObjectMapper().readTree(json);
-		// this is a create, and an update (on the parent)
-		db.update(virtualSuperclass.getIncomingRelationship(), false, new UpdateOperation() {
-		    @Override
-		    public void updateElement(SimpleFdoAdapter dal, Node node) {
-			addElementToMap(dal, node, key, values);
-		    }
-		});
-		db.commit();
-	    } catch (JsonProcessingException jpe) {
-		db.rollback();
-		throw new IllegalJsonException("The JSON string was badly formed: " + json, jpe);
-	    } catch (IOException e) {
-		db.rollback();
-		throw new JsonPersistenceException("IOException whilst writing data to database", e);
-	    }
+	    return new EmptyGraphNode(new PotentialRelationship() {
+		private Relationship r;
+
+		@Override
+		public Relationship create() {
+		    // this is a create, and an update (on the parent)
+		    getStrategy().update(virtualSuperclass.getIncomingRelationship(), false, new UpdateOperation() {
+			@Override
+			public void updateElement(Node node) {
+			    r = addElementToMap(getStrategy(), node, key);
+			}
+		    });
+		    return r;
+		}
+	    }, getStrategy());
 	}
     }
 
-    static Node addElementToMap(SimpleFdoAdapter dal, Node node, final String key, JsonNode json) {
+    static Relationship addElementToMap(FundementalDatabaseOperations dal, Node node, final String key) {
 	Node newNode = dal.createNewNode();
-	GraphNodeImpl.populateWithJson(dal, newNode, json);
-	node.createRelationshipTo(newNode, RelationshipTypes.MAP).setProperty(RelationshipParameters.KEY.name(), key);
-	return newNode;
+	Relationship r = node.createRelationshipTo(newNode, RelationshipTypes.MAP);
+	r.setProperty(RelationshipParameters.KEY.name(), key);
+	return r;
     }
 
-    public void removeElementFromMap(Relationship relationshipToParent, final String key) {
+    public void removeElementFromMap(final Relationship relationshipToParent, final String key) {
 	// this is a delete (on node) and update (on parent)
-	FundementalDatabaseOperations db = getStrategy();
+	final FundementalDatabaseOperations db = getStrategy();
 	db.update(relationshipToParent, false, new UpdateOperation() {
 	    @Override
-	    public void updateElement(SimpleFdoAdapter dal, Node node) {
+	    public void updateElement(Node node) {
 		for (Relationship relationshipToNodeToDelete : node.getRelationships(Direction.OUTGOING,
 			RelationshipTypes.MAP))
 		    if (relationshipToNodeToDelete.getProperty(RelationshipParameters.KEY.name()).equals(key))
-			dal.delete(relationshipToNodeToDelete);
+			db.delete(relationshipToNodeToDelete);
 	    }
 	});
     }
 
     @Override
-    public void add(String json) throws JsonPersistenceException {
+    public EmptyGraphNode add() throws JsonPersistenceException {
 	throw new JsonPersistenceException("It's not possible to add an array element to a map node. ");
     }
 
     @Override
     public FundementalDatabaseOperations getStrategy() {
 	return virtualSuperclass.getStrategy();
+    }
+
+    @Override
+    public Neo4JGraphNode navigate(PathToken token) throws IllegalJsonException {
+	if (token.isArrayIndexToken())
+	    throw new IllegalJsonException("Expecting a map element in json path expression: " + token.getFragment());
+	if (this.containsKey(token.getFragment()))
+	    return get(token.getFragment());
+	else
+	    return put(token.getFragment());
     }
 }

@@ -6,6 +6,7 @@ import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.helpers.collection.IteratorUtil;
 
+import com.crypticbit.f2f.db.neo4j.Neo4JGraphNode;
 import com.crypticbit.f2f.db.neo4j.types.RelationshipTypes;
 
 public class TimeStampedHistoryAdapter extends CompoundFdoAdapter {

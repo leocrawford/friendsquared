@@ -4,6 +4,8 @@ import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
 
+import com.crypticbit.f2f.db.neo4j.Neo4JGraphNode;
+
 public abstract class CompoundFdoAdapter implements FundementalDatabaseOperations {
 
     private FundementalDatabaseOperations nextAdapter;
@@ -31,7 +33,7 @@ public abstract class CompoundFdoAdapter implements FundementalDatabaseOperation
 
     @Override
     public Node read(Relationship relationshipToNode) {
-	return read(relationshipToNode);
+	return nextAdapter.read(relationshipToNode);
     }
 
     @Override

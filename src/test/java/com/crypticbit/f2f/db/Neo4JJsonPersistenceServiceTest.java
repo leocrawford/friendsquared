@@ -8,6 +8,7 @@ import java.nio.file.Files;
 
 import org.junit.Test;
 
+import com.crypticbit.f2f.db.neo4j.Neo4JGraphNode;
 import com.crypticbit.f2f.db.neo4j.Neo4JJsonPersistenceService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -20,84 +21,84 @@ public class Neo4JJsonPersistenceServiceTest {
     public void testBasicWriteFromRoot() throws IOException, JsonPersistenceException, IllegalJsonException {
 	Neo4JJsonPersistenceService ps = createNewService();
 
-	ps.overwrite(jsonText);
-	assertEquals(mapper.readTree(jsonText), mapper.readTree(ps.toJsonString()));
+	ps.getRootNode().write(jsonText);
+	assertEquals(mapper.readTree(jsonText), mapper.readTree(ps.getRootNode().toJsonString()));
     }
 
     @Test
     public void testOverwriteOfNonRootMapNode() throws IOException, JsonPersistenceException, IllegalJsonException {
 	Neo4JJsonPersistenceService ps = createNewService();
 
-	ps.overwrite(jsonText);
-	ps.navigate("second").overwrite("\"new value\"");
+	ps.getRootNode().write(jsonText);
+	ps.getRootNode().navigate("second").write("\"new value\"");
 
 	assertEquals(mapper.readTree("{\"first\": 123, \"second\": \"new value\", \"third\": 789, \"xid\": null}"),
-		mapper.readTree(ps.toJsonString()));
+		mapper.readTree(ps.getRootNode().toJsonString()));
 
-	ps.navigate("second").overwrite("[0,1,2]");
+	ps.getRootNode().navigate("second").write("[0,1,2]");
 
 	assertEquals(mapper.readTree("{\"first\": 123, \"second\": [0,1,2], \"third\": 789, \"xid\": null}"),
-		mapper.readTree(ps.toJsonString()));
+		mapper.readTree(ps.getRootNode().toJsonString()));
     }
 
     @Test
     public void testPutOfNewNonRootMapNode() throws IOException, JsonPersistenceException, IllegalJsonException {
 	Neo4JJsonPersistenceService ps = createNewService();
 
-	ps.overwrite(jsonText);
+	ps.getRootNode().write(jsonText);
 
-	ps.put("new", "\"new value\"");
+	ps.getRootNode().put("new").write("\"new value\"");
 
 	assertEquals(
 		mapper.readTree("{\"new\":\"new value\",\"first\": 123, \"second\": [{\"k1\":{\"id\":\"sd1 p\"}}, 4, 5, 6, {\"id\": 123}], \"third\": 789, \"xid\": null}"),
-		mapper.readTree(ps.toJsonString()));
+		mapper.readTree(ps.getRootNode().toJsonString()));
     }
 
     @Test
     public void testAddOfNewNonRootArrayNode() throws IOException, JsonPersistenceException, IllegalJsonException {
 	Neo4JJsonPersistenceService ps = createNewService();
 
-	ps.overwrite(jsonText);
-	ps.navigate("second").add("\"new value\"");
+	ps.getRootNode().write(jsonText);
+	ps.getRootNode().navigate("second").add().write("\"new value\"");
 
 	assertEquals(
 		mapper.readTree("{\"first\": 123, \"second\": [{\"k1\":{\"id\":\"sd1 p\"}}, 4, 5, 6, {\"id\": 123},\"new value\"], \"third\": 789, \"xid\": null}"),
-		mapper.readTree(ps.toJsonString()));
+		mapper.readTree(ps.getRootNode().toJsonString()));
     }
 
     @Test
     public void testPutOfExistingNonRootMapNode() throws IOException, JsonPersistenceException, IllegalJsonException {
 	Neo4JJsonPersistenceService ps = createNewService();
 
-	ps.overwrite(jsonText);
-	ps.put("second", "\"new value\"");
+	ps.getRootNode().write(jsonText);
+	ps.getRootNode().put("second").write("\"new value\"");
 
 	assertEquals(mapper.readTree("{\"first\": 123, \"second\": \"new value\", \"third\": 789, \"xid\": null}"),
-		mapper.readTree(ps.toJsonString()));
+		mapper.readTree(ps.getRootNode().toJsonString()));
     }
 
     @Test
     public void testOverwriteOfNonRootArrayNode() throws IOException, JsonPersistenceException, IllegalJsonException {
 	Neo4JJsonPersistenceService ps = createNewService();
 
-	ps.overwrite(jsonText);
-	ps.navigate("second[0]").overwrite("\"new value 1\"");
+	ps.getRootNode().write(jsonText);
+	ps.getRootNode().navigate("second[0]").write("\"new value 1\"");
 
 	assertEquals(
 		mapper.readTree("{\"first\": 123, \"second\": [\"new value 1\", 4, 5, 6, {\"id\": 123}], \"third\": 789, \"xid\": null}"),
-		mapper.readTree(ps.toJsonString()));
+		mapper.readTree(ps.getRootNode().toJsonString()));
     }
 
     @Test
     public void testNavigate() throws IOException, JsonPersistenceException, IllegalJsonException {
 	Neo4JJsonPersistenceService ps = createNewService();
 
-	ps.overwrite(jsonText);
+	ps.getRootNode().write(jsonText);
 
 	assertEquals(mapper.readTree("{\"k1\":{\"id\":\"sd1 p\"}}"),
-		mapper.readTree(ps.navigate("second[0]").toJsonString()));
+		mapper.readTree(ps.getRootNode().navigate("second[0]").toJsonString()));
 
-	assertEquals(mapper.readTree("{\"id\":\"sd1 p\"}"), mapper.readTree(ps.navigate("second[0].k1").toJsonString()));
+	assertEquals(mapper.readTree("{\"id\":\"sd1 p\"}"), mapper.readTree(ps.getRootNode().navigate("second[0].k1").toJsonString()));
 
     }
 
@@ -105,46 +106,51 @@ public class Neo4JJsonPersistenceServiceTest {
     public void testOverwriteRoot() throws IOException, JsonPersistenceException, IllegalJsonException {
 	Neo4JJsonPersistenceService ps = createNewService();
 
-	ps.overwrite(jsonText);
-	ps.overwrite("\"new value 1\"");
+	ps.getRootNode().write(jsonText);
+	ps.getRootNode().write("\"new value 1\"");
 
-	assertEquals(mapper.readTree("\"new value 1\""), mapper.readTree(ps.toJsonString()));
+	assertEquals(mapper.readTree("\"new value 1\""), mapper.readTree(ps.getRootNode().toJsonString()));
     }
 
     @Test
     public void getHistorySimpleReplacement() throws IOException, JsonPersistenceException, IllegalJsonException {
 	Neo4JJsonPersistenceService ps = createNewService();
 
-	ps.overwrite("\"new value 1\"");
-	ps.overwrite("\"new value 2\"");
-	ps.overwrite("\"new value 3\"");
+	ps.getRootNode().write("\"new value 1\"");
+	ps.getRootNode().write("\"new value 2\"");
+	ps.getRootNode().write("\"new value 3\"");
 
-	assertEquals(3, ps.getHistory().size());
+	assertEquals(3, ps.getRootNode().getHistory().size());
 
-	ps.overwrite("\"new value 4\"");
+	ps.getRootNode().write("\"new value 4\"");
 
-	assertEquals(4, ps.getHistory().size());
+	assertEquals(4, ps.getRootNode().getHistory().size());
 
-	assertTrue("Check most recent history comes first", ps.getHistory().get(0).getTimestamp() > ps.getHistory()
+	assertTrue("Check most recent history comes first", ps.getRootNode().getHistory().get(0).getTimestamp() > ps.getRootNode().getHistory()
 		.get(3).getTimestamp());
 
 	assertEquals(mapper.readTree("\"new value 2\""),
-		mapper.readTree(ps.getHistory().get(2).getVersion().toJsonString()));
+		mapper.readTree(ps.getRootNode().getHistory().get(2).getVersion().toJsonString()));
     }
 
     @Test
     public void getHistoryOfAdd() throws IOException, JsonPersistenceException, IllegalJsonException {
 	Neo4JJsonPersistenceService ps = createNewService();
 
-	ps.overwrite(jsonText);
+	Neo4JGraphNode rootNode = ps.getRootNode();
+	rootNode.write(jsonText);
+	rootNode.navigate("second").add().write("\"new value 1\"");
+	rootNode.getStrategy().commit();
+		
+	 ps.startWebServiceAndWait();
+	
+	assertEquals(2, rootNode.navigate("second").getHistory().size());
 
-	ps.navigate("second").add("\"new value 1\"");
+	rootNode.navigate("second").add().write("\"new value 2\"");
 
-	assertEquals(2, ps.navigate("second").getHistory().size());
-
-	ps.navigate("second").add("\"new value 2\"");
-
-	assertEquals(3, ps.navigate("second").getHistory().size());
+	assertEquals(3, rootNode.navigate("second").getHistory().size());
+	
+	
     }
 
     @Test

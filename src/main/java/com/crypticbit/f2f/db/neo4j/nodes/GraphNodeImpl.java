@@ -8,7 +8,6 @@ import java.util.LinkedList;
 import java.util.List;
 
 import org.neo4j.graphdb.Direction;
-import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
 
@@ -19,41 +18,45 @@ import com.crypticbit.f2f.db.JsonPersistenceException;
 import com.crypticbit.f2f.db.neo4j.Neo4JGraphNode;
 import com.crypticbit.f2f.db.neo4j.strategies.FundementalDatabaseOperations;
 import com.crypticbit.f2f.db.neo4j.strategies.FundementalDatabaseOperations.UpdateOperation;
-import com.crypticbit.f2f.db.neo4j.strategies.SimpleFdoAdapter;
-import com.crypticbit.f2f.db.neo4j.strategies.TimeStampedHistoryAdapter;
 import com.crypticbit.f2f.db.neo4j.types.NodeTypes;
 import com.crypticbit.f2f.db.neo4j.types.RelationshipParameters;
 import com.crypticbit.f2f.db.neo4j.types.RelationshipTypes;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.jayway.jsonpath.JsonPath;
+import com.jayway.jsonpath.internal.PathToken;
+import com.jayway.jsonpath.internal.PathTokenizer;
 
 public class GraphNodeImpl implements Neo4JGraphNode {
 
     private Neo4JGraphNode graphNode;
     private Relationship incomingRelationship;
+    private FundementalDatabaseOperations fdo;
 
-    public GraphNodeImpl(Neo4JGraphNode graphNode, Relationship incomingRelationship) {
+    public GraphNodeImpl(Neo4JGraphNode graphNode, Relationship incomingRelationship, FundementalDatabaseOperations fdo) {
 	this.graphNode = graphNode;
 	this.incomingRelationship = incomingRelationship;
+	this.fdo = fdo;
     }
 
-    public Neo4JGraphNode navigate(String path) {
-	return JsonPath.compile(path).read(graphNode);
+    public Neo4JGraphNode navigate(String path) throws IllegalJsonException {
+	PathTokenizer tokens = new PathTokenizer(path);
+	Neo4JGraphNode currentNode = graphNode;
+	for (PathToken token : tokens) {
+	    if (!token.isRootToken())
+		currentNode = currentNode.navigate(token);
+	}
+	return currentNode;
     }
 
-    public void overwrite(String json) throws IllegalJsonException, JsonPersistenceException {
+    public void write(String json) throws IllegalJsonException, JsonPersistenceException {
 	FundementalDatabaseOperations db = getStrategy();
 	try {
 	    JsonNode values = new ObjectMapper().readTree(json);
 	    overwriteElement(db, incomingRelationship, values);
-	    db.commit();
 	} catch (JsonProcessingException jpe) {
-	    db.rollback();
 	    throw new IllegalJsonException("The JSON string was badly formed: " + json, jpe);
 	} catch (IOException e) {
-	    db.rollback();
 	    throw new JsonPersistenceException("IOException whilst writing data to database", e);
 	}
 
@@ -61,14 +64,6 @@ public class GraphNodeImpl implements Neo4JGraphNode {
 
     public Relationship getIncomingRelationship() {
 	return incomingRelationship;
-    }
-
-    public FundementalDatabaseOperations getStrategy() {
-	return new TimeStampedHistoryAdapter(getDatabaseService(), new SimpleFdoAdapter(getDatabaseService()));
-    }
-
-    private GraphDatabaseService getDatabaseService() {
-	return graphNode.getDatabaseNode().getGraphDatabase();
     }
 
     public String toJsonString() {
@@ -116,7 +111,7 @@ public class GraphNodeImpl implements Neo4JGraphNode {
 
 		System.out.println("Found " + r + " between " + r.getStartNode() + "," + r.getEndNode());
 
-		final Neo4JGraphNode endNode = NodeTypes.wrapAsGraphNode(r.getEndNode(), r);
+		final Neo4JGraphNode endNode = NodeTypes.wrapAsGraphNode(r.getEndNode(), r, getStrategy());
 		history.addAll(endNode.getHistory());
 	    }
 	}
@@ -130,23 +125,24 @@ public class GraphNodeImpl implements Neo4JGraphNode {
     }
 
     @Override
-    public void put(String key, String json) throws IllegalJsonException, JsonPersistenceException {
+    public Neo4JGraphNode put(String key) throws IllegalJsonException, JsonPersistenceException {
 	throw new UnsupportedOperationException("put is to be provided locally");
 
     }
 
     @Override
-    public void add(String json) throws IllegalJsonException, JsonPersistenceException {
+    public EmptyGraphNode add() throws IllegalJsonException, JsonPersistenceException {
 	throw new UnsupportedOperationException("add is to be provided locally");
 
     }
 
-    static void populateWithJson(SimpleFdoAdapter dal, Node graphNode, JsonNode jsonNode) {
+    static void populateWithJson(FundementalDatabaseOperations dal, Node graphNode, JsonNode jsonNode) {
 	if (jsonNode.isContainerNode()) {
 	    if (jsonNode.isArray()) {
 		graphNode.setProperty(RelationshipParameters.TYPE.name(), NodeTypes.ARRAY.toString());
 		for (int loop = 0; loop < jsonNode.size(); loop++) {
-		    ArrayGraphNode.addElementToArray(dal, graphNode, loop, jsonNode.get(loop));
+		    Relationship n = ArrayGraphNode.addElementToArray(dal, graphNode, loop);
+		    overwriteElement(dal, n, jsonNode.get(loop));
 		}
 	    }
 	    if (jsonNode.isObject()) {
@@ -154,7 +150,8 @@ public class GraphNodeImpl implements Neo4JGraphNode {
 		Iterator<String> fieldNamesIterator = jsonNode.fieldNames();
 		while (fieldNamesIterator.hasNext()) {
 		    String f = fieldNamesIterator.next();
-		    MapGraphNode.addElementToMap(dal, graphNode, f, jsonNode.get(f));
+		    Relationship n = MapGraphNode.addElementToMap(dal, graphNode, f);
+		    overwriteElement(dal, n, jsonNode.get(f));
 		}
 	    }
 	} else {
@@ -163,15 +160,25 @@ public class GraphNodeImpl implements Neo4JGraphNode {
 	}
     }
 
-    public static void overwriteElement(FundementalDatabaseOperations db, Relationship relationshipToNode,
+    public static void overwriteElement(final FundementalDatabaseOperations db, final Relationship relationshipToNode,
 	    final JsonNode json) {
 	db.update(relationshipToNode, true, new UpdateOperation() {
 	    @Override
-	    public void updateElement(SimpleFdoAdapter dal, Node node) {
-		populateWithJson(dal, node, json);
+	    public void updateElement(Node node) {
+		populateWithJson(db, node, json);
 	    }
 	});
 
+    }
+
+    @Override
+    public Neo4JGraphNode navigate(PathToken token) throws IllegalJsonException {
+	throw new UnsupportedOperationException("navigate(token) is to be provided locally");
+    }
+
+    @Override
+    public FundementalDatabaseOperations getStrategy() {
+	return fdo;
     }
 
 }

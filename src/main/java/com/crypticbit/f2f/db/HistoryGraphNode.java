@@ -4,7 +4,5 @@ import java.util.List;
 
 public interface HistoryGraphNode extends GraphNode {
 
-    public List<History> getHistory();
-    public long getTimestamp();
-    
+
 }
