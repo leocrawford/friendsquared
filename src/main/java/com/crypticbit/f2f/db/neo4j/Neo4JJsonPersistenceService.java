@@ -78,7 +78,7 @@ public class Neo4JJsonPersistenceService implements JsonPersistenceService {
     }
 
     /** Get the root of the graph */
-    public Node getDatabaseNode() {
+    protected Node getDatabaseNode() {
 	return referenceNode;
     }
 

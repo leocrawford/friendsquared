@@ -90,11 +90,16 @@ public class EmptyGraphNode implements Neo4JGraphNode {
 
     }
 
-    private void makeRelationsipTangibleIfNotAlready(NodeTypes nodeType) {
+    private void makeRelationsipTangibleIfNotAlready(final NodeTypes nodeType) {
 	if (node == null) {
-	    Relationship r = potentialRelationship.create(NullUpdateOperation.INSTANCE);
-	    node.getDatabaseNode().setProperty(RelationshipParameters.TYPE.name(), nodeType);
+	    Relationship r = potentialRelationship.create(new UpdateOperation() {
+		@Override
+		public void updateElement(Node graphNode, FundementalDatabaseOperations dal) {
+		    graphNode.setProperty(RelationshipParameters.TYPE.name(), nodeType.name());
+		}
+	    });
 	    node = NodeTypes.wrapAsGraphNode(r.getEndNode(), r, getStrategy());
+
 	}
 	checkHaveDelegateNode();
     }
@@ -138,7 +143,8 @@ public class EmptyGraphNode implements Neo4JGraphNode {
 
     @Override
     public Neo4JGraphNode navigate(PathToken token) throws IllegalJsonException {
-	checkHaveDelegateNode();
+	// checkHaveDelegateNode();
+	makeRelationsipTangibleIfNotAlready(token.isArrayIndexToken() ? NodeTypes.ARRAY : NodeTypes.MAP);
 	return node.navigate(token);
     }
 

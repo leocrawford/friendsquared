@@ -86,7 +86,6 @@ public class GraphNodeImpl implements Neo4JGraphNode {
 
     @Override
     public List<History> getHistory() {
-	System.out.println("Called history on " + graphNode.getDatabaseNode().getId());
 	if (history == null) {
 	    history = new LinkedList<History>();
 	    history.add(new History() {
@@ -107,8 +106,6 @@ public class GraphNodeImpl implements Neo4JGraphNode {
 	    });
 	    for (Relationship r : graphNode.getDatabaseNode().getRelationships(RelationshipTypes.PREVIOUS_VERSION,
 		    Direction.OUTGOING)) {
-
-		System.out.println("Found " + r + " between " + r.getStartNode() + "," + r.getEndNode());
 
 		final Neo4JGraphNode endNode = NodeTypes.wrapAsGraphNode(r.getEndNode(), r, getStrategy());
 		history.addAll(endNode.getHistory());
