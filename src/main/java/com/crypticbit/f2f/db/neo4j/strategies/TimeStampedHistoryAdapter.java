@@ -15,28 +15,36 @@ public class TimeStampedHistoryAdapter extends CompoundFdoAdapter {
 
     @Override
     public Node createNewNode(UpdateOperation createOperation) {
-	Node result = super.createNewNode(createOperation);
-	addTimestampToNode(result);
+	Node result = super.createNewNode(createOperation.add(getTimestampOperation()));
 	return result;
     }
 
-    private void addTimestampToNode(Node node) {
-	node.setProperty("timestamp", System.currentTimeMillis());
+    private UpdateOperation getTimestampOperation() {
+	return new UpdateOperation() {
+	    @Override
+	    public void updateElement(Node graphNode, FundementalDatabaseOperations dal) {
+		graphNode.setProperty("timestamp", System.currentTimeMillis());
+	    }
+	};
     }
 
     @Override
-    public void update(Relationship relationshipToParent, boolean removeEverything, UpdateOperation operation) {
-	Node nodeToUpdate = relationshipToParent.getEndNode();
-	Node clonedNode = super.getGraphDB().createNode();
-	if (!removeEverything) {
-	    copyOutgoingRelationships(nodeToUpdate, clonedNode);
-	    copyProperties(nodeToUpdate, clonedNode);
-	}
-	Relationship replacementRelationship = cloneRelationshipToNewEndNode(clonedNode, relationshipToParent);
-	relationshipToParent.delete();
-	addTimestampToNode(clonedNode);
-	clonedNode.createRelationshipTo(nodeToUpdate, RelationshipTypes.PREVIOUS_VERSION);
-	super.update(replacementRelationship, false, operation);
+    public void update(final Relationship relationshipToParent, final boolean removeEverything,
+	    final UpdateOperation operation) {
+	final Node nodeToUpdate = relationshipToParent.getEndNode();
+	createNewNode(new UpdateOperation() {
+	    @Override
+	    public void updateElement(Node newGraphNode, FundementalDatabaseOperations dal) {
+		if (!removeEverything) {
+		    copyOutgoingRelationships(nodeToUpdate, newGraphNode);
+		    copyProperties(nodeToUpdate, newGraphNode);
+		}
+		cloneRelationshipToNewEndNode(newGraphNode, relationshipToParent);
+		relationshipToParent.delete();
+		newGraphNode.createRelationshipTo(nodeToUpdate, RelationshipTypes.PREVIOUS_VERSION);
+	    }
+	}.add(operation));
+
     }
 
     private void copyProperties(Node fromNode, Node toNode) {

@@ -138,8 +138,8 @@ public class EmptyGraphNode implements Neo4JGraphNode {
 
     @Override
     public Neo4JGraphNode navigate(PathToken token) throws IllegalJsonException {
-	// TODO Auto-generated method stub
-	return null;
+	checkHaveDelegateNode();
+	return node.navigate(token);
     }
 
 }

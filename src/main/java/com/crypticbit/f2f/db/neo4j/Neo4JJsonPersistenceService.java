@@ -116,23 +116,30 @@ public class Neo4JJsonPersistenceService implements JsonPersistenceService {
 	if (getDatabaseNode().hasRelationship(RelationshipTypes.MAP, Direction.OUTGOING)) {
 	    Relationship r = getDatabaseNode().getRelationships(RelationshipTypes.MAP, Direction.OUTGOING).iterator()
 		    .next();
-	    return NodeTypes.wrapAsGraphNode(r.getEndNode(), r,fdo);
+	    return NodeTypes.wrapAsGraphNode(r.getEndNode(), r, fdo);
 	} else {
-	    
+
 	    return new EmptyGraphNode(new PotentialRelationship() {
+		Relationship relationship;
 		@Override
 		public Relationship create(UpdateOperation createOperation) {
-		    Node newNode = fdo.createNewNode(createOperation);
-		    return getDatabaseNode().createRelationshipTo(newNode, RelationshipTypes.MAP);
+
+		    fdo.createNewNode(createOperation.add(new UpdateOperation() {
+			@Override
+			public void updateElement(Node graphNode, FundementalDatabaseOperations dal) {
+			    relationship = getDatabaseNode().createRelationshipTo(graphNode, RelationshipTypes.MAP);
+			}
+		    }));
+		    return relationship;
 		}
-	    },fdo);
+	    }, fdo);
 	}
     }
 
     private FundementalDatabaseOperations createDatabase() {
-	    TimeStampedHistoryAdapter fdo = new TimeStampedHistoryAdapter(graphDb, new SimpleFdoAdapter(graphDb));
-	    fdo.setTopFdo(fdo);
-	    return fdo;
+	TimeStampedHistoryAdapter fdo = new TimeStampedHistoryAdapter(graphDb, new SimpleFdoAdapter(graphDb));
+	fdo.setTopFdo(fdo);
+	return fdo;
 
     }
 

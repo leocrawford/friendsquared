@@ -43,18 +43,6 @@ public abstract class CompoundFdoAdapter implements FundementalDatabaseOperation
 	nextAdapter.delete(relationshipToNodeToDelete);
 
     }
-
-    @Override
-    public void commit() {
-	nextAdapter.commit();
-
-    }
-
-    @Override
-    public void rollback() {
-	nextAdapter.rollback();
-
-    }
     
     public void setTopFdo(FundementalDatabaseOperations fdo) {
 	this.fdo = fdo;

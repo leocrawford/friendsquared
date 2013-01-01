@@ -12,52 +12,39 @@ import com.crypticbit.f2f.db.neo4j.types.RelationshipTypes;
 public class SimpleFdoAdapter implements FundementalDatabaseOperations {
 
     private GraphDatabaseService graphDb;
-    private Transaction tx;
     private FundementalDatabaseOperations fdo;
 
     public SimpleFdoAdapter(GraphDatabaseService graphDb) {
 	this.graphDb = graphDb;
-	tx = graphDb.beginTx();
-    }
-
-    public void commit() {
-	tx.success();
-	tx.finish();
-	tx = null;
-    }
-
-    public void rollback() {
-	tx.failure();
-	tx.finish();
-	tx = null;
-    }
-
-    protected void finalize() {
-	assert tx == null;
     }
 
     @Override
     public Node createNewNode(UpdateOperation createOperation) {
-	checkWithinTransaction();
-	Node node = graphDb.createNode();
-	createOperation.updateElement(node, fdo);
-	return node;
-    }
-
-    private void checkWithinTransaction() {
-	if (tx == null)
-	    throw new Error("Tried to do operation outside of a transaction");
+	Transaction tx = graphDb.beginTx();
+	try {
+	    Node node = graphDb.createNode();
+	    createOperation.updateElement(node, fdo);
+	    tx.success();
+	    return node;
+	} finally {
+	    tx.finish();
+	}
 
     }
 
     @Override
     public void update(Relationship relationshipToParent, boolean removeEverything, UpdateOperation o) {
-	checkWithinTransaction();
-	if (removeEverything) {
-	    removeRelationships(relationshipToParent.getEndNode(), RelationshipTypes.ARRAY, RelationshipTypes.MAP);
-	    removeProperties(relationshipToParent.getEndNode(), RelationshipParameters.values());
+	Transaction tx = graphDb.beginTx();
+	try {
+	    if (removeEverything) {
+		removeRelationships(relationshipToParent.getEndNode(), RelationshipTypes.ARRAY, RelationshipTypes.MAP);
+		removeProperties(relationshipToParent.getEndNode(), RelationshipParameters.values());
+	    }
+	    o.updateElement(relationshipToParent.getEndNode(), fdo);
+	    tx.success();
+	} finally {
+	    tx.finish();
 	}
-	o.updateElement(relationshipToParent.getEndNode(), fdo);
     }
 
     private void removeProperties(Node node, RelationshipParameters[] values) {
@@ -82,15 +69,20 @@ public class SimpleFdoAdapter implements FundementalDatabaseOperations {
 
     @Override
     public void delete(Relationship relationshipToNodeToDelete) {
-	checkWithinTransaction();
-	Node nodeAtOtherEnd = relationshipToNodeToDelete.getEndNode();
-	relationshipToNodeToDelete.delete();
-	nodeAtOtherEnd.delete();
+	Transaction tx = graphDb.beginTx();
+	try {
+	    Node nodeAtOtherEnd = relationshipToNodeToDelete.getEndNode();
+	    relationshipToNodeToDelete.delete();
+	    nodeAtOtherEnd.delete();
+	    tx.success();
+	} finally {
+	    tx.finish();
+	}
     }
 
     @Override
     public void setTopFdo(FundementalDatabaseOperations fdo) {
 	this.fdo = fdo;
-	
+
     }
 }

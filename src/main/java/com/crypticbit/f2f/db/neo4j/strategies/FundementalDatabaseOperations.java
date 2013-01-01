@@ -3,6 +3,8 @@ package com.crypticbit.f2f.db.neo4j.strategies;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
 
+import com.crypticbit.f2f.db.neo4j.strategies.FundementalDatabaseOperations.UpdateOperation;
+
 /**
  * The CRUD Operations a database needs to implement - and which can be
  * intercepted, to change behaviour
@@ -61,11 +63,24 @@ public interface FundementalDatabaseOperations {
      * @author leo
      * 
      */
-    public interface UpdateOperation {
-	void updateElement(Node graphNode, FundementalDatabaseOperations dal);
+    public abstract class UpdateOperation {
+	public abstract void updateElement(Node graphNode, FundementalDatabaseOperations dal);
+
+	public UpdateOperation add(final UpdateOperation newOperation) {
+	    return new UpdateOperation() {
+
+		@Override
+		public void updateElement(Node graphNode, FundementalDatabaseOperations dal) {
+		    UpdateOperation.this.updateElement(graphNode, dal);
+		    newOperation.updateElement(graphNode, dal);
+
+		}
+
+	    };
+	}
     }
 
-    public class NullUpdateOperation implements UpdateOperation {
+    public class NullUpdateOperation extends UpdateOperation {
 	public static NullUpdateOperation INSTANCE = new NullUpdateOperation();
 
 	@Override
@@ -73,10 +88,6 @@ public interface FundementalDatabaseOperations {
 	}
 
     }
-
-    public void commit();
-
-    public void rollback();
 
     public void setTopFdo(FundementalDatabaseOperations fdo);
 }

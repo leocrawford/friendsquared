@@ -140,9 +140,6 @@ public class Neo4JJsonPersistenceServiceTest {
 	Neo4JGraphNode rootNode = ps.getRootNode();
 	rootNode.write(jsonText);
 	rootNode.navigate("second").add().write("\"new value 1\"");
-	rootNode.getStrategy().commit();
-		
-//	 ps.startWebServiceAndWait();
 	
 	assertEquals(2, ps.getRootNode().navigate("second").getHistory().size());
 
