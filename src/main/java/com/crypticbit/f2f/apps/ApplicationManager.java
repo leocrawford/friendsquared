@@ -1,6 +1,7 @@
 package com.crypticbit.f2f.apps;
 
-import com.crypticbit.f2f.db.JsonPersistenceService;
+import com.crypticbit.javelin.JsonPersistenceService;
+
 
 /**
  * The Application Manager manages all the applications, including the system
