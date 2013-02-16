@@ -2,12 +2,14 @@ package com.crypticbit.f2f.apps.javascript;
 
 public class Rpc {
 
+    private String unit;
     private String method;
     private String data;
     public Rpc() {
 	
     }
-    public Rpc(String function, String json) {
+    public Rpc(String unit, String function, String json) {
+	this.unit = unit;
 	this.method = function;
 	this.data = json;
     }
@@ -25,7 +27,13 @@ public class Rpc {
     }
     
     public String toString() {
-	return method+"("+data+")";
+	return unit+"."+method+"("+data+")";
+    }
+    public String getUnit() {
+	return unit;
+    }
+    public void setUnit(String unit) {
+	this.unit = unit;
     }
     
     
